@@ -104,3 +104,26 @@
 
 ## 7. 기능별 사용자 흐름도
 <img width="400" alt="스크린샷 2025-07-10 오후 4 47 03" src="https://github.com/user-attachments/assets/96e82eeb-f0f0-423c-815e-f1e977f6392d" />
+
+## 8. Api 명세 초안
+### 인증 관련
+
+```
+POST   /api/auth/register      # 회원가입
+POST   /api/auth/login         # 로그인
+POST   /api/auth/logout        # 로그아웃
+POST   /api/auth/withdraw      # 회원탈퇴
+GET    /api/auth/me            # 현재 사용자 정보
+PUT    /api/auth/me            # 사용자 정보 수정
+```
+
+### 할일 관리
+
+```
+GET    /api/tasks               # 할일 목록 조회
+POST   /api/tasks               # 새 할일 생성
+GET    /api/tasks/{id}          # 특정 할일 조회
+PUT    /api/tasks/{id}          # 할일 수정
+DELETE /api/tasks/{id}          # 할일 삭제
+PATCH  /api/tasks/{id}/toggle   # 완료 상태 토글
+```
