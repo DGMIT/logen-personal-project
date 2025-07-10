@@ -102,3 +102,5 @@
   <img src="https://github.com/user-attachments/assets/90ec6578-4da8-493d-b5cb-c4aaf6651d89" width="400" alt="통계화면" />
 </p>
 
+## 7. 기능별 사용자 흐름도
+<img width="400" alt="스크린샷 2025-07-10 오후 4 47 03" src="https://github.com/user-attachments/assets/96e82eeb-f0f0-423c-815e-f1e977f6392d" />
