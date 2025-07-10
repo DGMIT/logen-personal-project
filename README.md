@@ -91,3 +91,14 @@
 └── docs/                           # 나중에 문서 정리용
     └── api_test.md                 # API 테스트 방법 메모
 ```
+
+## 6. 주요 화면 구성안
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8fca244c-88f9-4986-ab1d-21b93c275e70" width="400" alt="로그인" />
+  <img src="https://github.com/user-attachments/assets/fd1a9699-4462-40a8-adb5-23c5adbc43f5" width="400" alt="회원가입" />
+  <img src="https://github.com/user-attachments/assets/7c174262-5267-4a4d-a6b2-bfdbdfd06a2d" width="400" alt="메인화면1" />
+  <img src="https://github.com/user-attachments/assets/ca055cff-3d20-4ab9-a5a2-56bee7eacc6e" width="400" alt="메인화면2" />
+  <img src="https://github.com/user-attachments/assets/90ec6578-4da8-493d-b5cb-c4aaf6651d89" width="400" alt="통계화면" />
+</p>
+
