@@ -113,8 +113,7 @@ POST   /api/auth/register      # 회원가입
 POST   /api/auth/login         # 로그인
 POST   /api/auth/logout        # 로그아웃
 POST   /api/auth/withdraw      # 회원탈퇴
-GET    /api/auth/me            # 현재 사용자 정보
-PUT    /api/auth/me            # 사용자 정보 수정
+GET    /api/user               # 내 정보 보기
 ```
 
 ### 할일 관리
