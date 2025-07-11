@@ -106,6 +106,7 @@
 <img width="400" alt="스크린샷 2025-07-10 오후 4 47 03" src="https://github.com/user-attachments/assets/96e82eeb-f0f0-423c-815e-f1e977f6392d" />
 
 ## 8. Api 명세 초안
+- [상세 명세 링크](https://confused-dietician-c17.notion.site/API-2257caa087bd80b1949de14394631552?source=copy_link)
 ### 인증 관련
 
 ```
