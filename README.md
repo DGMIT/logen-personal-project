@@ -119,10 +119,10 @@ GET    /api/auth/me            # 내 정보 보기
 ### 할일 관리
 
 ```
-GET    /api/tasks               # 할일 목록 조회
-POST   /api/tasks               # 새 할일 생성
-GET    /api/tasks/{id}          # 특정 할일 조회
-PUT    /api/tasks/{id}          # 할일 수정
-DELETE /api/tasks/{id}          # 할일 삭제
-PATCH  /api/tasks/{id}/toggle   # 완료 상태 토글
+GET    /api/todos               # 할일 목록 조회
+POST   /api/todos               # 새 할일 생성
+GET    /api/todos/{id}          # 특정 할일 조회
+PUT    /api/todos/{id}          # 할일 수정
+DELETE /api/todos/{id}          # 할일 삭제
+PATCH  /api/todos/{id}/toggle   # 완료 상태 토글
 ```
