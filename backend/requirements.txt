@@ -1,0 +1,9 @@
+flask
+flask-cors
+python-dotenv
+mysql-connector-python
+bcrypt
+pyjwt
+black
+flake8
+isort

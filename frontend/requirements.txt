@@ -1,0 +1,6 @@
+PyQt6
+requests
+python-dotenv   # 선택사항, API 주소 환경변수 관리용
+black
+flake8
+isort

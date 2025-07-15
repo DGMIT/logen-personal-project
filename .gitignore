@@ -1,0 +1,50 @@
+# Python (backend)
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.vscode/
+backend/.idea/
+backend/__pypackages__/
+
+# PyQt6 (frontend)
+frontend/.venv/
+frontend/__pycache__/
+frontend/*.pyc
+frontend/.env
+frontend/.vscode/
+frontend/.idea/
+frontend/__pypackages__/
+
+# Docker
+docker-compose.override.yml
+*.log
+docker-compose.override.yaml
+
+# MacOS 관련
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# 기타
+*.log
