@@ -1,6 +1,6 @@
 from config import config
 from flask import Flask
-from mysql_connection import get_connection
+from mysql_connection import get_all_users, get_connection
 
 app = Flask(__name__)
 
@@ -13,4 +13,5 @@ def hello_world():
 if __name__ == "__main__":
     mydb = get_connection(config)
     print(mydb)
+    get_all_users(mydb)
     app.run()
