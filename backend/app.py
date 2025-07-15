@@ -5,6 +5,7 @@ from mysql_connection import (
     get_all_users,
     get_connection,
     insert_user,
+    select_user_by_email,
 )
 
 app = Flask(__name__)
@@ -23,7 +24,7 @@ if __name__ == "__main__":
         ensure_tables_exist(cnx)
         get_all_users(cnx)
         insert_user("chec@naver.com", "qweqweqwe", "asda", cnx)
-        cnx.commit()
+        select_user_by_email("chec@naver.com", cnx)
         cnx.close()
     else:
         print("DB 연결 실패")

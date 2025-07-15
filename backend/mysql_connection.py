@@ -82,6 +82,20 @@ def get_all_users(cnx: MySQLConnection):
 
 
 def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
+    cursor = cnx.cursor()
+    cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+    count = cursor.fetchone()[0]
+    if count > 0:
+        print("이미 존재하는 이메일입니다.")
+        return
+    sql = "INSERT INTO user (email,password,name) VALUES (%s, %s, %s)"
+    cursor.execute(sql, (email, password, name))
+    cnx.commit()
+    cursor.close()
+
+
+def select_user_by_email(email, cnx: MySQLConnection):
     with cnx.cursor() as cursor:
-        sql = "INSERT INTO user (name,email,password) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (name, password, email))
+        sql = "SELECT * FROM user WHERE email = %s"
+        cursor.execute(sql, (email,))
+        print("select_user_by_email", cursor.fetchone())
