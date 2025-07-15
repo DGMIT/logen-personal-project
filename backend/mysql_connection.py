@@ -1,6 +1,3 @@
-import logging
-import time
-
 import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector.connection import MySQLConnection
