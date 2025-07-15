@@ -1,5 +1,5 @@
 # Python (backend)
-backend/venv/
+backend/.venv/
 backend/__pycache__/
 backend/*.pyc
 backend/.env
@@ -10,7 +10,7 @@ backend/.idea/
 backend/__pypackages__/
 
 # PyQt6 (frontend)
-frontend/venv/
+frontend/.venv/
 frontend/__pycache__/
 frontend/*.pyc
 frontend/.env

@@ -1,0 +1,25 @@
+{
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": [
+        "editor.formatOnSave",
+        "source.organizeImports",
+        "source.sortImports",
+        "source.fixAll"
+    ],
+    "cSpell.words": [
+        "venv",
+        "pycache",
+        "pytest",
+        "mypy",
+        "pypackages",
+        "fseventsd",
+        "icns",
+        "apdisk",
+        "dotenv",
+        "pyjwt",
+        "isort",
+        "VARCHAR",
+        "TINYINT",
+        "duedate"
+    ]
+}
