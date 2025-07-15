@@ -11,7 +11,12 @@ def hello_world():
 
 
 if __name__ == "__main__":
-    mydb = get_connection(config)
-    print(mydb)
-    get_all_users(mydb)
+    # cnx = 데이터베이스에 연결된 객체를 의미하는 네이밍
+    cnx = get_connection(config)
+    if cnx:
+        print(cnx)
+        get_all_users(cnx)
+        cnx.close()
+    else:
+        print("DB 연결 실패")
     app.run()
