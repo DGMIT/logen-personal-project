@@ -1,6 +1,6 @@
 from config import config
 from flask import Flask
-from mysql_connection import get_all_users, get_connection
+from mysql_connection import ensure_tables_exist, get_all_users, get_connection
 
 app = Flask(__name__)
 
@@ -15,6 +15,7 @@ if __name__ == "__main__":
     cnx = get_connection(config)
     if cnx:
         print(cnx)
+        ensure_tables_exist(cnx)
         get_all_users(cnx)
         cnx.close()
     else:
