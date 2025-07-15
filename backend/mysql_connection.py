@@ -74,11 +74,14 @@ def get_connection(config):
 
 
 def get_all_users(cnx: MySQLConnection):
-    if cnx and cnx.is_connected():
-        with cnx.cursor() as cursor:
-            cursor.execute("SELECT * FROM user")
-            rows = cursor.fetchall()
-            for row in rows:
-                print(row)
-    else:
-        print("could not connect")
+    with cnx.cursor() as cursor:
+        cursor.execute("SELECT * FROM user")
+        rows = cursor.fetchall()
+        for row in rows:
+            print(row)
+
+
+def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
+    with cnx.cursor() as cursor:
+        sql = "INSERT INTO user (name,email,password) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (name, password, email))

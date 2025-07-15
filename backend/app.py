@@ -1,6 +1,11 @@
 from config import config
 from flask import Flask
-from mysql_connection import ensure_tables_exist, get_all_users, get_connection
+from mysql_connection import (
+    ensure_tables_exist,
+    get_all_users,
+    get_connection,
+    insert_user,
+)
 
 app = Flask(__name__)
 
@@ -17,6 +22,8 @@ if __name__ == "__main__":
         print(cnx)
         ensure_tables_exist(cnx)
         get_all_users(cnx)
+        insert_user("chec@naver.com", "qweqweqwe", "asda", cnx)
+        cnx.commit()
         cnx.close()
     else:
         print("DB 연결 실패")
