@@ -169,8 +169,50 @@ CREATE INDEX idx_todo_user_priority ON todo(user_id, priority);
 ```
 
 
-## 10. 사용 방법
-### 백엔드
-- uvicorn main:app --reload 를 실행하여 fastapi서버를 실행시킨다
+# 10. 사용 방법
+## 백엔드
+### 1. 환경 변수 설정
+
+프로젝트 백엔드 루트 디렉터리에 `.env` 파일을 생성하고 다음 내용을 작성하세요.
+
+```env
+DB_HOST=127.0.0.1
+DB_USER=root
+DB_PASSWORD=1234
+DB_NAME=todo_app
+```
+
+* `DB_PASSWORD`는 MariaDB 루트 비밀번호와 동일하게 설정해야 합니다.
+
+### 2. MariaDB 컨테이너 실행 및 초기화
+
+* Docker Desktop이 실행 중인지 확인하세요.
+* 아래 명령어로 기존 컨테이너와 데이터 볼륨을 삭제해 초기 상태로 만듭니다.
+
+```bash
+docker-compose down -v
+```
+
+* 아래 명령어로 컨테이너를 다시 실행합니다. 이때 `init_db.sql` 파일이 자동으로 실행되어 데이터베이스와 테이블이 생성됩니다.
+
+```bash
+docker-compose up -d
+```
+
+### 3. FastAPI 서버 실행
+
+* 아래 명령어로 FastAPI 서버를 실행합니다.
+
+```bash
+uvicorn main:app --reload
+```
+
+* 서버가 정상적으로 시작되면 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) 에 접속하여 Swagger UI를 확인할 수 있습니다.
+
+### 4. 주의 사항
+
+* DB 비밀번호, 데이터베이스명 등 환경변수가 `.env` 파일과 `docker-compose.yml`의 환경 변수 설정이 일치하는지 확인하세요.
+* 기존에 데이터가 있으면 `docker-compose down -v`로 데이터 볼륨을 삭제 후 재실행해야 초기화 스크립트가 실행됩니다.
+
 - http://127.0.0.1:8000/docs를 접속하여 스웨거가 나오는지 확인한다
 ### 프론트엔드
