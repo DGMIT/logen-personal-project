@@ -49,116 +49,53 @@ async def startup_event():
     "/login",
     response_model=schemas.UserLoginResponse,
     responses={
-        500: {
-            "model": schemas.ErrorResponse,
-            "description": "DB 연결에 실패했습니다.",
-            "content": {
-                "application/json": {
-                    "example": {"success": False, "message": "DB 연결에 실패했습니다."}
-                }
-            },
-        },
-        404: {
-            "model": schemas.ErrorResponse,
-            "description": "존재하지 않는 이메일입니다.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": False,
-                        "message": "존재하지 않는 이메일입니다.",
-                    }
-                }
-            },
-        },
-        401: {
-            "model": schemas.ErrorResponse,
-            "description": "비밀번호가 일치하지 않습니다.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": False,
-                        "message": "비밀번호가 일치하지 않습니다.",
-                    }
-                }
-            },
-        },
+        400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
+        401: {"model": schemas.ErrorResponse, "description": "비밀번호 불일치"},
+        404: {"model": schemas.ErrorResponse, "description": "존재하지 않는 이메일"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def login(request: schemas.UserLoginRequest, response: schemas.UserLoginResponse):
+def login(request: schemas.UserLoginRequest):
     email = request.email
     password = request.password
-    # 필수 입력값 누락
     if not email or not password:
-        return schemas.ErrorResponse(
-            success=False,
-            message="이메일 또는 비밀번호가 비어있습니다",
-        )
+        raise HTTPException(status_code=400, detail="이메일 또는 비밀번호가 비어있습니다")
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    # 사용자 조회
-    user = select_user_by_email_and_password(email, password, cnx)
-    if not user:
-        raise HTTPException(
-            status_code=404, detail="이메일 또는 비밀번호가 일치하지 않습니다."
-        )
-    user_id, user_name, user_email, _ = user
-    # 엑세스 토큰 발급
-    access_token_expires = datetime.timedelta(
-        minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    token = create_access_token(
-        data={"sub": str(user_id)},
-        expires_delta=access_token_expires,
-    )
-    # 성공
+    result = select_user_by_email_and_password(email, password, cnx)
+    if not result:
+        raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+    user_id, user_name, user_email, user_password = result
+    if user_password != password:
+        raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
     return schemas.UserLoginResponse(
         success=True,
         message="로그인 성공",
         data=schemas.UserLoginData(
-            token=token,
+            token="1234567890",
             user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
         ),
     )
-
 
 @app.post(
     "/register",
     response_model=schemas.UserSigninResponse,
     responses={
-        500: {
-            "model": schemas.ErrorResponse,
-            "description": "DB 연결에 실패했습니다.",
-            "content": {
-                "application/json": {
-                    "example": {"success": False, "message": "DB 연결에 실패했습니다."}
-                }
-            },
-        },
-        500: {
-            "model": schemas.ErrorResponse,
-            "description": "DB 연결에 실패했습니다.",
-            "content": {
-                "application/json": {
-                    "example": {"success": False, "message": "DB 연결에 실패했습니다."}
-                }
-            },
-        },
+        400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
+        409: {"model": schemas.ErrorResponse, "description": "이미 존재하는 이메일"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-# 이메일 형식 체크는 pydantic 모델에서 수행함
 def register(request: schemas.UserSigninRequest):
     email = request.email
     password = request.password
     name = request.name
-    # 필수 필드 유효성 검사 (email, password, name)
     if not email or not password or not name:
-        return {"success": "공백이 존재합니다."}
-
+        raise HTTPException(status_code=400, detail="공백이 존재합니다.")
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    #  이메일 중복 확인 (DB에서 기존 이메일 있는지 조회) 및 DB에 사용자 정보 저장 (email, 암호화된 password, name)
     if insert_user(email, password, name, cnx):
         return schemas.UserSigninResponse(
             success=True,
@@ -166,50 +103,101 @@ def register(request: schemas.UserSigninRequest):
             data=schemas.PublicUserInfo(id=1, email=email, name=name),
         )
     else:
-        raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
-    # TODO 예외 처리 (DB 연결 실패, 쿼리 오류 등)
+        raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
 
-
-@app.post("/logout")
+@app.post(
+    "/logout",
+    response_model=schemas.UserLogoutResponse,
+    responses={
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def logout():
-    return {"message": "로그아웃 성공"}
+    return schemas.UserLogoutResponse(success=True, message="로그아웃 성공")
 
-
-@app.post("/withdraw")
+@app.post(
+    "/withdraw",
+    response_model=schemas.UserWithdrawResponse,
+    responses={
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def withdraw():
-    return {"message": "회원탈퇴 성공"}
+    return schemas.UserWithdrawResponse(success=True, message="회원탈퇴 성공")
 
-
-@app.get("/user")
+@app.get(
+    "/user",
+    response_model=schemas.UserMeResponse,
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "인증 필요"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def info_me():
-    return {"message": "유저 본인정보 조회 성공"}
+    return schemas.UserMeResponse(success=True, message="유저 본인정보 조회 성공", data=schemas.PublicUserInfo(id=1, email="test@example.com", name="홍길동"))
 
-
-@app.post("/todos")
+@app.post(
+    "/todos",
+    response_model=schemas.TodoCreateResponse,
+    responses={
+        400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def add_todo():
-    return {"message": "할일 등록 성공"}
+    return schemas.TodoCreateResponse(success=True, message="할일 등록 성공", data=None)
 
-
-@app.get("/todos/{id}")
+@app.get(
+    "/todos/{id}",
+    response_model=schemas.TodoResponse,
+    responses={
+        404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def get_todo(id: int):
-    return {"message": f"{id}번째 할일 조회 성공"}
+    return schemas.TodoResponse(success=True, message=f"{id}번째 할일 조회 성공", data=None)
 
-
-@app.get("/todos")
+@app.get(
+    "/todos",
+    response_model=schemas.TodoListResponse,
+    responses={
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def get_todos():
-    return {"message": "할일 목록조회 성공"}
+    return schemas.TodoListResponse(success=True, message="할일 목록조회 성공", data=None)
 
-
-@app.put("/todos/{id}")
+@app.put(
+    "/todos/{id}",
+    response_model=schemas.TodoUpdateResponse,
+    responses={
+        404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
+        400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def modify_todo(id: int):
-    return {"message": f"{id}번째 할일 수정 성공"}
+    return schemas.TodoUpdateResponse(success=True, message=f"{id}번째 할일 수정 성공", data=None)
 
-
-@app.delete("/todos/{id}")
+@app.delete(
+    "/todos/{id}",
+    response_model=schemas.DeleteSuccessResponse,
+    responses={
+        404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def delete_todo(id: int):
-    return {"message": f"{id}번째 할일 삭제 성공"}
+    return schemas.DeleteSuccessResponse(success=True, message=f"{id}번째 할일 삭제 성공")
 
-
-@app.patch("/todos/{id}/toggle")
+@app.patch(
+    "/todos/{id}/toggle",
+    response_model=schemas.ToggleSuccessResponse,
+    responses={
+        404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
 def toggle_todo(id: int):
-    return {"message": f"{id}번째 할일 완료 상태 변경 성공"}
+    return schemas.ToggleSuccessResponse(success=True, message=f"{id}번째 할일 완료 상태 변경 성공")

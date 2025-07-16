@@ -13,111 +13,93 @@ class User(BaseModel):
     id: int
     name: str
     email: EmailStr
-    password: str
+    # password 필드는 DB 모델에서만 사용, API 응답에는 포함하지 않음
 
 
-class TodoItem(BaseModel):
+class Todo(BaseModel):
     id: int
     title: str
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
     priority: Literal["낮음", "보통", "높음"]
-    dueDate: date
-    completed: bool = Field(..., alias="completed")
+    due_date: date = Field(..., alias="dueDate")
+    completed: bool
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
 
     class Config:
-        allow_population_by_field_name = True  # alias 사용 가능하게
+        allow_population_by_field_name = True
+        orm_mode = True
 
 
-class PublicUserInfo(BaseModel):
+class PublicUser(BaseModel):
     id: int
     email: EmailStr
     name: str
 
 
-class UserLoginRequest(BaseModel):
+class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
-class UserLoginData(BaseModel):
+class LoginData(BaseModel):
     token: str
-    user: PublicUserInfo
+    user: PublicUser
 
 
-class UserLoginResponse(BaseModel):
+class LoginResponse(BaseModel):
     success: bool
     message: str
-    data: UserLoginData
+    data: LoginData
 
 
-class UserSigninRequest(BaseModel):
+class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
 
 
-class UserSigninResponse(BaseModel):
+class RegisterResponse(BaseModel):
     success: bool
     message: str
-    data: PublicUserInfo
+    data: PublicUser
 
 
-class UserLogoutResponse(BaseModel):
-    success: bool
-    message: str
-
-
-class UserWithdrawResponse(BaseModel):
+class LogoutResponse(BaseModel):
     success: bool
     message: str
 
 
-class UserMeResponse(BaseModel):
+class WithdrawResponse(BaseModel):
     success: bool
     message: str
-    data: PublicUserInfo
 
 
-class TodoCreateData(BaseModel):
-    todo: TodoItem
+class MeResponse(BaseModel):
+    success: bool
+    message: str
+    data: PublicUser
 
 
 class TodoCreateRequest(BaseModel):
+    title: str
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
-    dueDate: date
+    due_date: date = Field(..., alias="dueDate")
     priority: Literal["낮음", "보통", "높음"]
 
 
 class TodoCreateResponse(BaseModel):
     success: bool
     message: str
-    data: TodoCreateData
+    data: Todo
 
 
 class TodoResponse(BaseModel):
     success: bool
     message: str
-    data: TodoCreateData
-
-
-class TodoListQueryParams(BaseModel):
-    completed: Optional[bool] = Field(None, description="완료 여부 필터링")
-    category: Optional[Literal["업무", "개인", "학습", "기타"]] = Field(
-        None, description="카테고리 필터링"
-    )
-    priority: Optional[Literal["높음", "보통", "낮음"]] = Field(
-        None, description="우선순위 필터링"
-    )
-    sort: Optional[Literal["createdAt", "dueDate", "priority"]] = Field(
-        "createdAt", description="정렬 기준"
-    )
-    order: Optional[Literal["asc", "desc"]] = Field("desc", description="정렬 방향")
-    page: Optional[int] = Field(1, description="페이지 번호")
-    limit: Optional[int] = Field(10, description="페이지당 항목 수")
+    data: Todo
 
 
 class PaginationMeta(BaseModel):
@@ -130,7 +112,7 @@ class PaginationMeta(BaseModel):
 
 
 class TodoListData(BaseModel):
-    todos: List[TodoItem]
+    todos: List[Todo]
     pagination: PaginationMeta
 
 
@@ -140,40 +122,26 @@ class TodoListResponse(BaseModel):
     data: TodoListData
 
 
-class TodoPathParams(BaseModel):
-    id: int
-
-
 class TodoUpdateRequest(BaseModel):
     title: Optional[str]
     description: Optional[str]
-    category: Optional[Literal["업무", "학습", "개인"]]
-    due_date: Optional[date]
+    category: Optional[Literal["업무", "학습", "개인", "기타"]]
+    due_date: Optional[date] = Field(None, alias="dueDate")
     priority: Optional[Literal["높음", "보통", "낮음"]]
     completed: Optional[bool]
 
     class Config:
         allow_population_by_field_name = True
-        fields = {
-            "due_date": "dueDate",
-        }
-
-
-class TodoUpdateData(BaseModel):
-    todo: TodoItem
+        fields = {"due_date": "dueDate"}
 
 
 class TodoUpdateResponse(BaseModel):
     success: bool
     message: str
-    data: TodoUpdateData
+    data: Todo
 
 
-class TodoDeletePathParams(BaseModel):
-    id: int  # 삭제할 할일 ID
-
-
-class DeleteSuccessResponse(BaseModel):
+class DeleteResponse(BaseModel):
     success: bool = True
     message: str = "할일이 성공적으로 삭제되었습니다"
 
@@ -183,10 +151,6 @@ class ErrorResponse(BaseModel):
     message: str
 
 
-class TodoTogglePathParams(BaseModel):
-    id: int  # 완료 상태를 변경할 할일 ID
-
-
-class ToggleSuccessResponse(BaseModel):
+class ToggleResponse(BaseModel):
     success: bool = True
     message: str = "완료 상태가 변경되었습니다"
