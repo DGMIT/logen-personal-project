@@ -1,3 +1,4 @@
+import bcrypt
 import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector.connection import MySQLConnection
@@ -85,8 +86,11 @@ def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
     if count > 0:
         print("이미 존재하는 이메일입니다.")
         return False
+    hassed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
+        "utf-8"
+    )
     sql = "INSERT INTO user (email,password,name) VALUES (%s, %s, %s)"
-    cursor.execute(sql, (email, password, name))
+    cursor.execute(sql, (email, hassed_password, name))
     cnx.commit()
     cursor.close()
     return True
@@ -96,13 +100,16 @@ def select_user_by_email(email, cnx: MySQLConnection):
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
-        print("select_user_by_email", cursor.fetchone())
+        return cursor.fetchone()
+
 
 def select_user_by_email_and_password(email, password, cnx: MySQLConnection):
-    with cnx.cursor() as cursor:
-        sql = "SELECT * FROM user WHERE email = %s AND password = %s"
-        cursor.execute(sql, (email, password))
-        print("select_user_by_email")
-        user = cursor.fetchone()
-        print("user",user,type(user))
+    user = select_user_by_email(email, cnx)
+    if not user:
+        return None
+    _, _, _, user_password = user
+    user_password = user_password.encode("utf-8")
+    # 비밀번호 불일치
+    if bcrypt.checkpw(password.encode("utf-8"), user_password):
         return user
+    return None
