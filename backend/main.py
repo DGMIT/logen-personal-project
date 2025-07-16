@@ -34,7 +34,7 @@ def login(request: schemas.UserLoginRequest):
     # 2. 사용자 조회
     result = select_user_by_email_and_password(email, password, cnx)
     if not result:
-        raise HTTPException(status:404,detail:"존재하지 않는 이메일입니다.")
+        raise HTTPException(status=404,detail="존재하지 않는 이메일입니다.")
     user_id,user_name,user_email,user_password= result
     # 3. 비밀번호 불일치
     if user_password != password:
