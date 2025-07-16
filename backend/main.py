@@ -3,7 +3,7 @@ from typing import Union
 import schemas
 from config import config
 from fastapi import FastAPI
-from mysql_connection import ensure_tables_exist, get_connection,insert_user
+from mysql_connection import ensure_tables_exist, get_connection,insert_user,select_user_by_email_and_password
 
 app = FastAPI()
 
@@ -28,14 +28,27 @@ def login(request: schemas.UserLoginRequest):
             success=False,
             message="이메일 또는 비밀번호가 비어있습니다",
         )
-    return schemas.UserLoginResponse(
-        success=True,
-        message="로그인 성공",
-        data=schemas.UserLoginData(
-            token="1234567890",
-            user=schemas.PublicUserInfo(id=1, email=email, name="홍길동"),
-        ),
-    )
+    cnx = get_connection(config)
+    if cnx and cnx.is_connected():
+        ensure_tables_exist(cnx)
+        user_id,user_name,user_email,_ = select_user_by_email_and_password(email, password, cnx)
+        if user_id and user_email and user_name:
+            return schemas.UserLoginResponse(
+                success=True,
+                message="로그인 성공",
+                data=schemas.UserLoginData(
+                    token="1234567890",
+                    user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
+                ),
+            )
+        else:
+            return schemas.ErrorResponse(
+                success=False,
+                message="이메일 또는 비밀번호가 일치하지 않습니다.",
+            )
+    else:
+        print("DB 연결에 실패했습니다.")
+        exit(1)
 
 
 @app.post("/register")
