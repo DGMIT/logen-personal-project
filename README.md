@@ -180,6 +180,10 @@ DB_HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=1234
 DB_NAME=todo_app
+# openssl rand -hex 32 를 통해 발급함
+JWT_SECRET_KEY=ca13a31abde015a62ab84172712a3e2fc8d6a830a4dca45e0e70bbbcdff7f91d
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ```
 
 * `DB_PASSWORD`는 MariaDB 루트 비밀번호와 동일하게 설정해야 합니다.
@@ -199,6 +203,10 @@ docker-compose down -v
 docker-compose up -d
 ```
 
+### 3. 가상환경 생성 및 라이브러리 설치
+- backend root에서 python3 -m venv .venv를 실행하여 가상환경을 설치합니다.
+- source .venv/bin/activate 를 입력하여 가상환경을 활성화 시킵니다.
+- pip install -r requirements.txt 를 입력하여 라이브러리를 설치합니다.
 ### 3. FastAPI 서버 실행
 
 * 아래 명령어로 FastAPI 서버를 실행합니다.

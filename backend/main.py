@@ -1,7 +1,5 @@
 import datetime
-from typing import Union
 
-from jose import jwt
 import schemas
 from config import (
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -10,24 +8,18 @@ from config import (
     config,
 )
 from fastapi import FastAPI, HTTPException
+from jose import jwt
 from mysql_connection import (
     ensure_tables_exist,
     get_connection,
     insert_user,
     select_user_by_email_and_password,
-    select_user_by_email,
 )
 from passlib.context import CryptContext
-from pydantic import BaseModel
 
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
@@ -35,7 +27,9 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta | None = N
     if expires_delta:
         expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
     else:
-        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
+        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+            minutes=15
+        )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
@@ -90,7 +84,7 @@ async def startup_event():
         },
     },
 )
-def login(request: schemas.UserLoginRequest,response: schemas.UserLoginResponse):
+def login(request: schemas.UserLoginRequest, response: schemas.UserLoginResponse):
     email = request.email
     password = request.password
     # 필수 입력값 누락
@@ -103,14 +97,18 @@ def login(request: schemas.UserLoginRequest,response: schemas.UserLoginResponse)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
     # 사용자 조회
-    user = select_user_by_email_and_password(email,password, cnx)
+    user = select_user_by_email_and_password(email, password, cnx)
     if not user:
-        raise HTTPException(status_code=404,detail="이메일 또는 비밀번호가 일치하지 않습니다.")
-    user_id,user_name,user_email,_ = user
+        raise HTTPException(
+            status_code=404, detail="이메일 또는 비밀번호가 일치하지 않습니다."
+        )
+    user_id, user_name, user_email, _ = user
     # 엑세스 토큰 발급
-    access_token_expires = datetime.timedelta(minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES))
+    access_token_expires = datetime.timedelta(
+        minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     token = create_access_token(
-        data={"sub": str(user_id)},  
+        data={"sub": str(user_id)},
         expires_delta=access_token_expires,
     )
     # 성공
@@ -170,7 +168,6 @@ def register(request: schemas.UserSigninRequest):
     else:
         raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
     # TODO 예외 처리 (DB 연결 실패, 쿼리 오류 등)
-
 
 
 @app.post("/logout")
