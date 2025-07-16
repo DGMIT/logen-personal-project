@@ -167,3 +167,10 @@ CREATE INDEX idx_todo_duedate ON todo(duedate);
 CREATE INDEX idx_todo_done ON todo(done);
 CREATE INDEX idx_todo_user_priority ON todo(user_id, priority);
 ```
+
+
+## 10. 사용 방법
+### 백엔드
+- uvicorn main:app --reload 를 실행하여 fastapi서버를 실행시킨다
+- http://127.0.0.1:8000/docs를 접속하여 스웨거가 나오는지 확인한다
+### 프론트엔드

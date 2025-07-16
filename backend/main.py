@@ -3,12 +3,31 @@ from typing import Union
 from config import config
 from fastapi import FastAPI
 from mysql_connection import ensure_tables_exist, get_connection
+import schemas
 
 app = FastAPI()
 
 @app.post("/login")
-def login():
-    return {"message": "로그인 성공"}
+def login(request:schemas.UserLoginRequest):
+    email = request.email
+    password = request.password
+
+    if not email or not password:
+        return schemas.ErrorResponse(
+            success=False,
+            message="이메일 또는 비밀번호가 비어있습니다",)
+    return schemas.UserLoginResponse(
+        success=True,
+        message="로그인 성공",
+        data=schemas.UserLoginData(
+            token="1234567890",
+            user=schemas.PublicUserInfo(
+                id=1,
+                email=email,
+                name="홍길동"
+            )
+        )
+    )
 
 @app.post("/register")
 def register():

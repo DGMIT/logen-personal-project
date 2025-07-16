@@ -96,3 +96,4 @@ def select_user_by_email(email, cnx: MySQLConnection):
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
         print("select_user_by_email", cursor.fetchone())
+
