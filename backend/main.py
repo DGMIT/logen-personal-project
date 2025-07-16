@@ -132,7 +132,6 @@ def register(request: schemas.UserSigninRequest):
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    #  TODO 비밀번호 암호화 (bcrypt 사용)
     #  이메일 중복 확인 (DB에서 기존 이메일 있는지 조회) 및 DB에 사용자 정보 저장 (email, 암호화된 password, name)
     if insert_user(email, password, name, cnx):
         return schemas.UserSigninResponse(
