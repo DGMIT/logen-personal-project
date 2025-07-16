@@ -2,7 +2,7 @@ from typing import Union
 
 import schemas
 from config import config
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 from mysql_connection import ensure_tables_exist, get_connection,insert_user,select_user_by_email_and_password
 
 app = FastAPI()
@@ -22,33 +22,32 @@ async def startup_event():
 def login(request: schemas.UserLoginRequest):
     email = request.email
     password = request.password
-
+    # 1. 필수 입력값 누락
     if not email or not password:
         return schemas.ErrorResponse(
             success=False,
             message="이메일 또는 비밀번호가 비어있습니다",
         )
     cnx = get_connection(config)
-    if cnx and cnx.is_connected():
-        ensure_tables_exist(cnx)
-        user_id,user_name,user_email,_ = select_user_by_email_and_password(email, password, cnx)
-        if user_id and user_email and user_name:
-            return schemas.UserLoginResponse(
-                success=True,
-                message="로그인 성공",
-                data=schemas.UserLoginData(
-                    token="1234567890",
-                    user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
-                ),
-            )
-        else:
-            return schemas.ErrorResponse(
-                success=False,
-                message="이메일 또는 비밀번호가 일치하지 않습니다.",
-            )
-    else:
-        print("DB 연결에 실패했습니다.")
-        exit(1)
+    if not cnx and not cnx.is_connected():
+        raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+    # 2. 사용자 조회
+    result = select_user_by_email_and_password(email, password, cnx)
+    if not result:
+        raise HTTPException(status:404,detail:"존재하지 않는 이메일입니다.")
+    user_id,user_name,user_email,user_password= result
+    # 3. 비밀번호 불일치
+    if user_password != password:
+        raise HTTPException(status_code=401,detail="비밀번호가 일치하지 않습니다.")
+    # 4. 성공
+    return schemas.UserLoginResponse(
+        success=True,
+        message="로그인 성공",
+        data=schemas.UserLoginData(
+            token="1234567890",
+            user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
+        ),
+    )
 
 
 @app.post("/register")
