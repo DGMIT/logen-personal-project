@@ -1,16 +1,44 @@
+import datetime
 from typing import Union
 
+from jose import jwt
 import schemas
-from config import config
+from config import (
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+    JWT_ALGORITHM,
+    JWT_SECRET_KEY,
+    config,
+)
 from fastapi import FastAPI, HTTPException
 from mysql_connection import (
     ensure_tables_exist,
     get_connection,
     insert_user,
     select_user_by_email_and_password,
+    select_user_by_email,
 )
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 app = FastAPI()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
+    else:
+        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
 
 
 @app.on_event("startup")
@@ -60,46 +88,37 @@ async def startup_event():
                 }
             },
         },
-        400: {
-            "model": schemas.ErrorResponse,
-            "description": "이메일 또는 비밀번호가 비어있습니다",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": False,
-                        "message": "이메일 또는 비밀번호가 비어있습니다",
-                    }
-                }
-            },
-        },
     },
 )
-def login(
-    request: schemas.UserLoginRequest,
-):
+def login(request: schemas.UserLoginRequest,response: schemas.UserLoginResponse):
     email = request.email
     password = request.password
-    # 1. 필수 입력값 누락
+    # 필수 입력값 누락
     if not email or not password:
-        return HTTPException(
-            status_code=400,
+        return schemas.ErrorResponse(
             success=False,
             message="이메일 또는 비밀번호가 비어있습니다",
         )
     cnx = get_connection(config)
-    if not cnx and not cnx.is_connected():
+    if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    # 2. 사용자 조회
-    user = select_user_by_email_and_password(email, password, cnx)
+    # 사용자 조회
+    user = select_user_by_email_and_password(email,password, cnx)
     if not user:
-        raise HTTPException(status=404, detail="존재하지 않는 이메일입니다.")
-    user_id, user_name, user_email, _ = user
-    # 4. 성공
+        raise HTTPException(status_code=404,detail="이메일 또는 비밀번호가 일치하지 않습니다.")
+    user_id,user_name,user_email,_ = user
+    # 엑세스 토큰 발급
+    access_token_expires = datetime.timedelta(minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES))
+    token = create_access_token(
+        data={"sub": str(user_id)},  
+        expires_delta=access_token_expires,
+    )
+    # 성공
     return schemas.UserLoginResponse(
         success=True,
         message="로그인 성공",
         data=schemas.UserLoginData(
-            token="1234567890",
+            token=token,
             user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
         ),
     )
@@ -109,6 +128,15 @@ def login(
     "/register",
     response_model=schemas.UserSigninResponse,
     responses={
+        500: {
+            "model": schemas.ErrorResponse,
+            "description": "DB 연결에 실패했습니다.",
+            "content": {
+                "application/json": {
+                    "example": {"success": False, "message": "DB 연결에 실패했습니다."}
+                }
+            },
+        },
         500: {
             "model": schemas.ErrorResponse,
             "description": "DB 연결에 실패했습니다.",
@@ -140,12 +168,9 @@ def register(request: schemas.UserSigninRequest):
             data=schemas.PublicUserInfo(id=1, email=email, name=name),
         )
     else:
-        return schemas.ErrorResponse(
-            success=False,
-            message="이미 존재하는 이메일입니다.",
-        )
+        raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
     # TODO 예외 처리 (DB 연결 실패, 쿼리 오류 등)
-    # TODO 회원가입 성공 후 JWT 토큰 발급 및 응답 포함
+
 
 
 @app.post("/logout")
