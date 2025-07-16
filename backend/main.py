@@ -2,8 +2,13 @@ from typing import Union
 
 import schemas
 from config import config
-from fastapi import FastAPI,HTTPException
-from mysql_connection import ensure_tables_exist, get_connection,insert_user,select_user_by_email_and_password
+from fastapi import FastAPI, HTTPException
+from mysql_connection import (
+    ensure_tables_exist,
+    get_connection,
+    insert_user,
+    select_user_by_email_and_password,
+)
 
 app = FastAPI()
 
@@ -18,8 +23,48 @@ async def startup_event():
         exit(1)
 
 
-@app.post("/login")
-def login(request: schemas.UserLoginRequest):
+@app.post(
+    "/login",
+    response_model=schemas.UserLoginResponse,
+    responses={
+        500: {
+            "model": schemas.ErrorResponse,
+            "description": "DB 연결에 실패했습니다.",
+            "content": {
+                "application/json": {
+                    "example": {"success": False, "message": "DB 연결에 실패했습니다."}
+                }
+            },
+        },
+        404: {
+            "model": schemas.ErrorResponse,
+            "description": "존재하지 않는 이메일입니다.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": False,
+                        "message": "존재하지 않는 이메일입니다.",
+                    }
+                }
+            },
+        },
+        401: {
+            "model": schemas.ErrorResponse,
+            "description": "비밀번호가 일치하지 않습니다.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": False,
+                        "message": "비밀번호가 일치하지 않습니다.",
+                    }
+                }
+            },
+        },
+    },
+)
+def login(
+    request: schemas.UserLoginRequest,
+):
     email = request.email
     password = request.password
     # 1. 필수 입력값 누락
@@ -34,11 +79,11 @@ def login(request: schemas.UserLoginRequest):
     # 2. 사용자 조회
     result = select_user_by_email_and_password(email, password, cnx)
     if not result:
-        raise HTTPException(status=404,detail="존재하지 않는 이메일입니다.")
-    user_id,user_name,user_email,user_password= result
+        raise HTTPException(status=404, detail="존재하지 않는 이메일입니다.")
+    user_id, user_name, user_email, user_password = result
     # 3. 비밀번호 불일치
     if user_password != password:
-        raise HTTPException(status_code=401,detail="비밀번호가 일치하지 않습니다.")
+        raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
     # 4. 성공
     return schemas.UserLoginResponse(
         success=True,
@@ -57,7 +102,7 @@ def register(request: schemas.UserSigninRequest):
     name = request.name
 
     if not email or not password or not name:
-        return {success:"공백이 존재합니다."}
+        return {"success": "공백이 존재합니다."}
 
     cnx = get_connection(config)
     if cnx and cnx.is_connected():
@@ -66,7 +111,7 @@ def register(request: schemas.UserSigninRequest):
             return schemas.UserSigninResponse(
                 success=True,
                 message="회원가입에 성공하셨습니다.",
-                data=schemas.PublicUserInfo(id=1,email=email,name=name)
+                data=schemas.PublicUserInfo(id=1, email=email, name=name),
             )
         else:
             return schemas.ErrorResponse(
