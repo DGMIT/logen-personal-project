@@ -1,4 +1,7 @@
 import datetime
+from typing import Any
+
+from pydantic_core.core_schema import none_schema
 
 import schemas
 from config import (
@@ -7,20 +10,31 @@ from config import (
     JWT_SECRET_KEY,
     config,
 )
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 from mysql_connection import (
     ensure_tables_exist,
     get_connection,
     insert_user,
     select_user_by_email_and_password,
+    select_user_by_email
 )
-from passlib.context import CryptContext
+from passlib.context import CryptContext    
 
 app = FastAPI()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+security = HTTPBearer()
+
+def get_db_connection():
+    cnx = get_connection(config)
+    try:
+        yield cnx
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
@@ -37,6 +51,30 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta | None = N
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
+def decode_jwt_token(token: str):
+    if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
+        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        user_email = payload.get("email")
+        if not user_id or not user_email:
+            raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
+        return user_id,user_email
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="토큰이 만료되었습니다.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), cnx = Depends(get_db_connection)):
+    token = credentials.credentials
+    print('token',token)
+    _, user_email = decode_jwt_token(token)
+    user = select_user_by_email(user_email, cnx)
+    if not user:
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+    return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
 
 @app.on_event("startup")
 async def startup_event():
@@ -46,7 +84,6 @@ async def startup_event():
     else:
         print("DB 연결에 실패했습니다.")
         exit(1)
-
 
 @app.post(
     "/login",
@@ -74,7 +111,7 @@ def login(request: schemas.LoginRequest):
         success=True,
         message="로그인 성공",
         data=schemas.LoginData(
-            token="1234567890",
+            token=create_access_token(data={"sub":str(user_id),"email":user_email}),
             user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
         ),
     )
@@ -113,7 +150,7 @@ def register(request: schemas.RegisterRequest):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def logout():
+def logout(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.LogoutResponse(success=True, message="로그아웃 성공")
 
 @app.post(
@@ -123,7 +160,8 @@ def logout():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def withdraw():
+def withdraw(current_user: schemas.PublicUser = Depends(get_current_user)):
+    print('withdraw current_user',current_user)
     return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
 
 @app.get(
@@ -134,8 +172,8 @@ def withdraw():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def info_me():
-    return schemas.MeResponse(success=True, message="유저 본인정보 조회 성공", data=schemas.PublicUser(id=1, email="test@example.com", name="홍길동"))
+def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
+    return schemas.MeResponse(success=True, message="유저 본인정보 조회 성공", data=current_user)
 
 @app.post(
     "/todos",
@@ -145,7 +183,7 @@ def info_me():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def add_todo():
+def add_todo(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoCreateResponse(
         success=True, 
         message="할일 등록 성공", 
@@ -170,7 +208,7 @@ def add_todo():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def get_todo(id: int):
+def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoResponse(
         success=True, 
         message=f"{id}번째 할일 조회 성공", 
@@ -194,7 +232,7 @@ def get_todo(id: int):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def get_todos():
+def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoListResponse(
         success=True, 
         message="할일 목록조회 성공", 
@@ -240,7 +278,7 @@ def get_todos():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def modify_todo(id: int):
+def modify_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoUpdateResponse(
         success=True, 
         message=f"{id}번째 할일 수정 성공", 
@@ -265,7 +303,7 @@ def modify_todo(id: int):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def delete_todo(id: int):
+def delete_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.DeleteResponse(success=True, message=f"{id}번째 할일 삭제 성공")
 
 @app.patch(
@@ -276,5 +314,5 @@ def delete_todo(id: int):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def toggle_todo(id: int):
+def toggle_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.ToggleResponse(success=True, message=f"{id}번째 할일 완료 상태 변경 성공")
