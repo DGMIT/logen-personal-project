@@ -1,4 +1,6 @@
 import datetime
+
+import jwt
 import schemas
 from config import (
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -7,21 +9,21 @@ from config import (
     config,
 )
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mysql_connection import (
+    delete_user,
     ensure_tables_exist,
     get_connection,
     insert_user,
-    select_user_by_email_and_password,
     select_user_by_email,
-    delete_user
+    select_user_by_email_and_password,
 )
 
 app = FastAPI()
 
 
 security = HTTPBearer()
+
 
 def get_db_connection():
     cnx = get_connection(config)
@@ -30,6 +32,7 @@ def get_db_connection():
     finally:
         if cnx and cnx.is_connected():
             cnx.close()
+
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
@@ -40,11 +43,12 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta | None = N
         expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
     else:
         expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES) 
+            minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
+
 
 def decode_jwt_token(token: str):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
@@ -57,22 +61,28 @@ def decode_jwt_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
 
+
 def extract_user_info_from_payload(payload: dict):
     user_id = payload.get("sub")
     user_email = payload.get("email")
     if not user_id or not user_email:
         raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
-    return user_id,user_email
+    return user_id, user_email
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), cnx = Depends(get_db_connection)):
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    cnx=Depends(get_db_connection),
+):
     token = credentials.credentials
-    print('token',token)
+    print("token", token)
     payload = decode_jwt_token(token)
     user_id, user_email = extract_user_info_from_payload(payload)
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
     return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -82,6 +92,7 @@ async def startup_event():
     else:
         print("DB 연결에 실패했습니다.")
         exit(1)
+
 
 @app.post(
     "/login",
@@ -98,11 +109,13 @@ def login(request: schemas.LoginRequest):
         email = request.email
         password = request.password
         if not email or not password:
-            raise HTTPException(status_code=400, detail="이메일 또는 비밀번호가 비어있습니다")
+            raise HTTPException(
+                status_code=400, detail="이메일 또는 비밀번호가 비어있습니다"
+            )
         cnx = get_connection(config)
         if not cnx or not cnx.is_connected():
             raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-        print('email, password',email, password)
+        print("email, password", email, password)
         user = select_user_by_email_and_password(email, password, cnx)
         if not user:
             raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
@@ -111,13 +124,16 @@ def login(request: schemas.LoginRequest):
             success=True,
             message="로그인 성공",
             data=schemas.LoginData(
-                token=create_access_token(data={"sub":str(user_id),"email":user_email}),
+                token=create_access_token(
+                    data={"sub": str(user_id), "email": user_email}
+                ),
                 user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
             ),
         )
     except Exception as err:
         print(err)
         raise HTTPException(status_code=500, detail=f"로그인 오류: {err}")
+
 
 @app.post(
     "/register",
@@ -150,6 +166,7 @@ def register(request: schemas.RegisterRequest):
         print(err)
         raise HTTPException(status_code=500, detail=f"회원가입 오류: {err}")
 
+
 @app.post(
     "/logout",
     response_model=schemas.LogoutResponse,
@@ -160,6 +177,7 @@ def register(request: schemas.RegisterRequest):
 def logout(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.LogoutResponse(success=True, message="로그아웃 성공")
 
+
 @app.post(
     "/withdraw",
     response_model=schemas.WithdrawResponse,
@@ -167,10 +185,14 @@ def logout(current_user: schemas.PublicUser = Depends(get_current_user)):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def withdraw(current_user: schemas.PublicUser = Depends(get_current_user), cnx = Depends(get_db_connection)):
-    print('withdraw current_user',current_user)
+def withdraw(
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    print("withdraw current_user", current_user)
     delete_user(current_user.id, cnx)
     return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
+
 
 @app.get(
     "/user",
@@ -181,7 +203,10 @@ def withdraw(current_user: schemas.PublicUser = Depends(get_current_user), cnx =
     },
 )
 def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
-    return schemas.MeResponse(success=True, message="유저 본인정보 조회 성공", data=current_user)
+    return schemas.MeResponse(
+        success=True, message="유저 본인정보 조회 성공", data=current_user
+    )
+
 
 @app.post(
     "/todos",
@@ -193,8 +218,8 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
 )
 def add_todo(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoCreateResponse(
-        success=True, 
-        message="할일 등록 성공", 
+        success=True,
+        message="할일 등록 성공",
         data=schemas.Todo(
             id=1,
             title="샘플 할일",
@@ -204,9 +229,10 @@ def add_todo(current_user: schemas.PublicUser = Depends(get_current_user)):
             dueDate=datetime.date.today(),
             completed=False,
             createdAt=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now()
-        )
+            updatedAt=datetime.datetime.now(),
+        ),
     )
+
 
 @app.get(
     "/todos/{id}",
@@ -218,8 +244,8 @@ def add_todo(current_user: schemas.PublicUser = Depends(get_current_user)):
 )
 def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoResponse(
-        success=True, 
-        message=f"{id}번째 할일 조회 성공", 
+        success=True,
+        message=f"{id}번째 할일 조회 성공",
         data=schemas.Todo(
             id=id,
             title=f"{id}번째 할일",
@@ -229,9 +255,10 @@ def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_use
             dueDate=datetime.date.today(),
             completed=False,
             createdAt=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now()
-        )
+            updatedAt=datetime.datetime.now(),
+        ),
     )
+
 
 @app.get(
     "/todos",
@@ -242,8 +269,8 @@ def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_use
 )
 def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoListResponse(
-        success=True, 
-        message="할일 목록조회 성공", 
+        success=True,
+        message="할일 목록조회 성공",
         data=schemas.TodoListData(
             todos=[
                 schemas.Todo(
@@ -255,7 +282,7 @@ def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
                     dueDate=datetime.date.today(),
                     completed=False,
                     createdAt=datetime.datetime.now(),
-                    updatedAt=datetime.datetime.now()
+                    updatedAt=datetime.datetime.now(),
                 ),
                 schemas.Todo(
                     id=2,
@@ -266,16 +293,15 @@ def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
                     dueDate=datetime.date.today(),
                     completed=True,
                     createdAt=datetime.datetime.now(),
-                    updatedAt=datetime.datetime.now()
-                )
+                    updatedAt=datetime.datetime.now(),
+                ),
             ],
             pagination=schemas.PaginationMeta(
-                currentPage=1,
-                totalPages=1,
-                totalItems=2
-            )
-        )
+                currentPage=1, totalPages=1, totalItems=2
+            ),
+        ),
     )
+
 
 @app.put(
     "/todos/{id}",
@@ -286,10 +312,10 @@ def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def modify_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
+def modify_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.TodoUpdateResponse(
-        success=True, 
-        message=f"{id}번째 할일 수정 성공", 
+        success=True,
+        message=f"{id}번째 할일 수정 성공",
         data=schemas.Todo(
             id=id,
             title=f"수정된 {id}번째 할일",
@@ -299,9 +325,10 @@ def modify_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_u
             dueDate=datetime.date.today(),
             completed=False,
             createdAt=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now()
-        )
+            updatedAt=datetime.datetime.now(),
+        ),
     )
+
 
 @app.delete(
     "/todos/{id}",
@@ -311,8 +338,9 @@ def modify_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_u
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def delete_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
+def delete_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
     return schemas.DeleteResponse(success=True, message=f"{id}번째 할일 삭제 성공")
+
 
 @app.patch(
     "/todos/{id}/toggle",
@@ -322,5 +350,7 @@ def delete_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_u
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def toggle_todo(id: int,current_user: schemas.PublicUser = Depends(get_current_user)):
-    return schemas.ToggleResponse(success=True, message=f"{id}번째 할일 완료 상태 변경 성공")
+def toggle_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
+    return schemas.ToggleResponse(
+        success=True, message=f"{id}번째 할일 완료 상태 변경 성공"
+    )

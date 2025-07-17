@@ -1,8 +1,10 @@
-from fastapi import HTTPException
-import mysql.connector
-from mysql.connector import errorcode
 from typing import Any
+
+import mysql.connector
+from fastapi import HTTPException
+from mysql.connector import errorcode
 from utils import get_password_hash, verify_password
+
 
 # database.py
 def ensure_tables_exist(cnx: Any):
@@ -109,10 +111,10 @@ def select_user_by_email(email, cnx: Any):
 def select_user_by_email_and_password(email, password, cnx: Any):
     with cnx.cursor() as cursor:
         # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
-        _,_,_,find_user_password = select_user_by_email(email, cnx)
-        
+        _, _, _, find_user_password = select_user_by_email(email, cnx)
+
         sql = "SELECT * FROM user WHERE email = %s AND password = %s"
-        cursor.execute(sql,(email,find_user_password))
+        cursor.execute(sql, (email, find_user_password))
         user = cursor.fetchone()
         if not user:
             raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
