@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mysql_connection import (
     add_todo_into_database,
+    delete_todo_from_database,
     delete_user,
     ensure_tables_exist,
     get_connection,
@@ -310,15 +311,20 @@ def modify_todo(
 
 
 @app.delete(
-    "/todos/{id}",
+    "/todos/{todo_id}",
     response_model=schemas.DeleteResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def delete_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
-    return schemas.DeleteResponse(success=True, message=f"{id}번째 할일 삭제 성공")
+def delete_todo(
+    todo_id: int,
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    delete_todo_from_database(current_user.id, todo_id, cnx)
+    return schemas.DeleteResponse(success=True, message=f"{todo_id}번째 할일 삭제 성공")
 
 
 @app.patch(

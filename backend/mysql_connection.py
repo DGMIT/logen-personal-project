@@ -193,4 +193,22 @@ def put_todo_from_database(user_id, todo_id, todo, cnx: Any):
         row = cursor.fetchone()
         print("result of row", row)
         if row is None:
-            return None  # 혹은 raise HTTPException(status_code=404, detail="Todo not found")
+            raise HTTPException(
+                status_code=500, detail="할일 수정 관련 데이터베이스 오류"
+            )
+        return row
+
+
+def delete_todo_from_database(user_id, todo_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        sql = "DELETE FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        cnx.commit()
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        if row:
+            raise HTTPException(
+                status_code=500, detail="할일 삭제 관련 데이터베이스 오류"
+            )
+        return True
