@@ -15,7 +15,8 @@ from mysql_connection import (
     delete_user,
     ensure_tables_exist,
     get_connection,
-    get_total_todos,
+    get_todo_from_database,
+    get_total_todos_from_datbase,
     insert_user,
     select_user_by_email,
     select_user_by_email_and_password,
@@ -219,19 +220,19 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
 )
 def add_todo(
     todo: schemas.TodoCreateRequest,
-    curret_user: schemas.PublicUser = Depends(get_current_user),
+    current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    add_todo_into_database(todo, curret_user.id, cnx)
+    todo_id = add_todo_into_database(todo, current_user.id, cnx)
     return schemas.TodoCreateResponse(
         success=True,
         message="할일 등록 성공",
         data=schemas.Todo(
-            id=1,
-            title="샘플 할일",
-            description="샘플 설명",
-            category="개인",
-            priority="보통",
+            id=todo_id,
+            title=todo.title,
+            description=todo.description,
+            category=todo.category,
+            priority=todo.priority,
             duedate=datetime.date.today(),
             done=False,
             created_at=datetime.datetime.now(),
@@ -240,27 +241,25 @@ def add_todo(
 
 
 @app.get(
-    "/todos/{id}",
+    "/todos/{todo_id}",
     response_model=schemas.TodoResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
+def get_todo(
+    todo_id: int,
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    todo = get_todo_from_database(current_user.id, todo_id, cnx)
+    if not todo:
+        raise HTTPException(status_code=404, detail="조회한 할일이 업습니다.")
     return schemas.TodoResponse(
         success=True,
-        message=f"{id}번째 할일 조회 성공",
-        data=schemas.Todo(
-            id=id,
-            title=f"{id}번째 할일",
-            description="샘플 설명",
-            category="개인",
-            priority="보통",
-            duedate=datetime.date.today(),
-            done=False,
-            created_at=datetime.datetime.now(),
-        ),
+        message=f"{todo_id}번째 할일 조회 성공",
+        data=schemas.Todo(**todo),
     )
 
 
@@ -279,7 +278,7 @@ def get_todos(
         success=True,
         message="할일 목록조회 성공",
         data=schemas.TodoListData(
-            todos=get_total_todos(current_user.id, cnx),
+            todos=get_total_todos_from_datbase(current_user.id, cnx),
             pagination=schemas.PaginationMeta(
                 currentPage=1, totalPages=1, totalItems=2
             ),
