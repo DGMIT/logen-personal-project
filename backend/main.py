@@ -11,6 +11,7 @@ from config import (
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mysql_connection import (
+    add_todo_into_database,
     delete_user,
     ensure_tables_exist,
     get_connection,
@@ -115,7 +116,6 @@ def login(request: schemas.LoginRequest):
         cnx = get_connection(config)
         if not cnx or not cnx.is_connected():
             raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-        print("email, password", email, password)
         user = select_user_by_email_and_password(email, password, cnx)
         if not user:
             raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
@@ -216,7 +216,12 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def add_todo(current_user: schemas.PublicUser = Depends(get_current_user)):
+def add_todo(
+    todo: schemas.TodoCreateRequest,
+    curret_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    add_todo_into_database(todo, curret_user.id, cnx)
     return schemas.TodoCreateResponse(
         success=True,
         message="할일 등록 성공",

@@ -1,6 +1,8 @@
+from datetime import date
 from typing import Any
 
 import mysql.connector
+import schemas
 from fastapi import HTTPException
 from mysql.connector import errorcode
 from utils import get_password_hash, verify_password
@@ -102,17 +104,20 @@ def delete_user(user_id, cnx: Any):
 
 
 def select_user_by_email(email, cnx: Any):
+    print(email)
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
-        return cursor.fetchone()
+        result = cursor.fetchone()
+        print("result", result)
+        return result
 
 
 def select_user_by_email_and_password(email, password, cnx: Any):
     with cnx.cursor() as cursor:
         # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
+        user = select_user_by_email(email, cnx)
         _, _, _, find_user_password = select_user_by_email(email, cnx)
-
         sql = "SELECT * FROM user WHERE email = %s AND password = %s"
         cursor.execute(sql, (email, find_user_password))
         user = cursor.fetchone()
@@ -121,3 +126,27 @@ def select_user_by_email_and_password(email, password, cnx: Any):
         if not verify_password(password, find_user_password):
             raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
         return user
+
+
+def add_todo_into_database(
+    todo: schemas.TodoCreateRequest,
+    user_id: int,
+    cnx: Any,
+):
+    with cnx.cursor() as cursor:
+        sql = """
+            INSERT INTO todo (title, description, category, priority, duedate, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(
+            sql,
+            (
+                todo.title,
+                todo.description,
+                todo.category,
+                todo.priority,
+                todo.due_date,
+                user_id,
+            ),
+        )
+    cnx.commit()
