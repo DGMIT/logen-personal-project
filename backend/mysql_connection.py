@@ -95,6 +95,12 @@ def insert_user(email: str, password: str, name: str, cnx: Any):
     cursor.close()
     return True
 
+def delete_user(user_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
+        cnx.commit()
+        return True
+
 
 def select_user_by_email(email, cnx: Any):
     with cnx.cursor() as cursor:

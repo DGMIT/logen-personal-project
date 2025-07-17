@@ -14,7 +14,8 @@ from mysql_connection import (
     get_connection,
     insert_user,
     select_user_by_email_and_password,
-    select_user_by_email
+    select_user_by_email,
+    delete_user
 )
 from passlib.context import CryptContext    
 
@@ -95,25 +96,29 @@ async def startup_event():
     },
 )
 def login(request: schemas.LoginRequest):
-    email = request.email
-    password = request.password
-    if not email or not password:
-        raise HTTPException(status_code=400, detail="이메일 또는 비밀번호가 비어있습니다")
-    cnx = get_connection(config)
-    if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    user = select_user_by_email_and_password(email, password, cnx)
-    if not user:
-        raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
-    user_id, user_name, user_email, _ = user
-    return schemas.LoginResponse(
-        success=True,
-        message="로그인 성공",
-        data=schemas.LoginData(
-            token=create_access_token(data={"sub":str(user_id),"email":user_email}),
-            user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
-        ),
-    )
+    try:
+        email = request.email
+        password = request.password
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="이메일 또는 비밀번호가 비어있습니다")
+        cnx = get_connection(config)
+        if not cnx or not cnx.is_connected():
+            raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+        user = select_user_by_email_and_password(email, password, cnx)
+        if not user:
+            raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+        user_id, user_name, user_email, _ = user
+        return schemas.LoginResponse(
+            success=True,
+            message="로그인 성공",
+            data=schemas.LoginData(
+                token=create_access_token(data={"sub":str(user_id),"email":user_email}),
+                user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
+            ),
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"로그인 오류: {err}")
 
 @app.post(
     "/register",
@@ -125,22 +130,26 @@ def login(request: schemas.LoginRequest):
     },
 )
 def register(request: schemas.RegisterRequest):
-    email = request.email
-    password = request.password
-    name = request.name
-    if not email or not password or not name:
-        raise HTTPException(status_code=400, detail="공백이 존재합니다.")
-    cnx = get_connection(config)
-    if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    if insert_user(email, password, name, cnx):
-        return schemas.RegisterResponse(
-            success=True,
-            message="회원가입에 성공하셨습니다.",
-            data=schemas.PublicUser(id=1, email=email, name=name),
-        )
-    else:
-        raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+    try:
+        email = request.email
+        password = request.password
+        name = request.name
+        if not email or not password or not name:
+            raise HTTPException(status_code=400, detail="공백이 존재합니다.")
+        cnx = get_connection(config)
+        if not cnx or not cnx.is_connected():
+            raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+        if insert_user(email, password, name, cnx):
+            return schemas.RegisterResponse(
+                success=True,
+                message="회원가입에 성공하셨습니다.",
+                data=schemas.PublicUser(id=1, email=email, name=name),
+            )
+        else:
+            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"회원가입 오류: {err}")
 
 @app.post(
     "/logout",
@@ -159,8 +168,9 @@ def logout(current_user: schemas.PublicUser = Depends(get_current_user)):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def withdraw(current_user: schemas.PublicUser = Depends(get_current_user)):
+def withdraw(current_user: schemas.PublicUser = Depends(get_current_user), cnx = Depends(get_db_connection)):
     print('withdraw current_user',current_user)
+    delete_user(current_user.id, cnx)
     return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
 
 @app.get(
