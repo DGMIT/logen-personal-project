@@ -1,8 +1,8 @@
-import bcrypt
+from fastapi import HTTPException
 import mysql.connector
 from mysql.connector import errorcode
 from typing import Any
-
+from utils import get_password_hash, verify_password
 
 # database.py
 def ensure_tables_exist(cnx: Any):
@@ -80,20 +80,17 @@ def get_all_users(cnx: Any):
 
 
 def insert_user(email: str, password: str, name: str, cnx: Any):
-    cursor = cnx.cursor()
-    cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
-    count = cursor.fetchone()[0]
-    if count > 0:
-        print("이미 존재하는 이메일입니다.")
-        return False
-    hassed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
-        "utf-8"
-    )
-    sql = "INSERT INTO user (email,password,name) VALUES (%s, %s, %s)"
-    cursor.execute(sql, (email, hassed_password, name))
-    cnx.commit()
-    cursor.close()
+    with cnx.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+        count = cursor.fetchone()[0]
+        if count > 0:
+            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+        hashed_password = get_password_hash(password)
+        sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (email, hashed_password, name))
+        cnx.commit()
     return True
+
 
 def delete_user(user_id, cnx: Any):
     with cnx.cursor() as cursor:
@@ -110,12 +107,15 @@ def select_user_by_email(email, cnx: Any):
 
 
 def select_user_by_email_and_password(email, password, cnx: Any):
-    user = select_user_by_email(email, cnx)
-    if not user:
-        return None
-    _, _, _, user_password = user
-    user_password = user_password.encode("utf-8")
-    # 비밀번호 불일치
-    if bcrypt.checkpw(password.encode("utf-8"), user_password):
+    with cnx.cursor() as cursor:
+        # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
+        _,_,_,find_user_password = select_user_by_email(email, cnx)
+        
+        sql = "SELECT * FROM user WHERE email = %s AND password = %s"
+        cursor.execute(sql,(email,find_user_password))
+        user = cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+        if not verify_password(password, find_user_password):
+            raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
         return user
-    return None

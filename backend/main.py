@@ -17,11 +17,9 @@ from mysql_connection import (
     select_user_by_email,
     delete_user
 )
-from passlib.context import CryptContext    
 
 app = FastAPI()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 security = HTTPBearer()
 
@@ -104,6 +102,7 @@ def login(request: schemas.LoginRequest):
         cnx = get_connection(config)
         if not cnx or not cnx.is_connected():
             raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+        print('email, password',email, password)
         user = select_user_by_email_and_password(email, password, cnx)
         if not user:
             raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
