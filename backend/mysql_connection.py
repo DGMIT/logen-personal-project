@@ -1,11 +1,11 @@
 import bcrypt
 import mysql.connector
 from mysql.connector import errorcode
-from mysql.connector.connection import MySQLConnection
+from typing import Any
 
 
 # database.py
-def ensure_tables_exist(cnx: MySQLConnection):
+def ensure_tables_exist(cnx: Any):
     cursor = cnx.cursor()
     cursor.execute(
         """
@@ -71,7 +71,7 @@ def get_connection(config):
         return None
 
 
-def get_all_users(cnx: MySQLConnection):
+def get_all_users(cnx: Any):
     with cnx.cursor() as cursor:
         cursor.execute("SELECT * FROM user")
         rows = cursor.fetchall()
@@ -79,7 +79,7 @@ def get_all_users(cnx: MySQLConnection):
             print(row)
 
 
-def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
+def insert_user(email: str, password: str, name: str, cnx: Any):
     cursor = cnx.cursor()
     cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
     count = cursor.fetchone()[0]
@@ -96,14 +96,14 @@ def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
     return True
 
 
-def select_user_by_email(email, cnx: MySQLConnection):
+def select_user_by_email(email, cnx: Any):
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
         return cursor.fetchone()
 
 
-def select_user_by_email_and_password(email, password, cnx: MySQLConnection):
+def select_user_by_email_and_password(email, password, cnx: Any):
     user = select_user_by_email(email, cnx)
     if not user:
         return None

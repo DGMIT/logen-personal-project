@@ -8,7 +8,7 @@ from config import (
     config,
 )
 from fastapi import FastAPI, HTTPException
-from jose import jwt
+import jwt
 from mysql_connection import (
     ensure_tables_exist,
     get_connection,
@@ -23,12 +23,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
+    if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
+        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
+
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
     else:
         expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            minutes=15
+            minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES) 
         )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
@@ -47,7 +50,7 @@ async def startup_event():
 
 @app.post(
     "/login",
-    response_model=schemas.UserLoginResponse,
+    response_model=schemas.LoginResponse,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         401: {"model": schemas.ErrorResponse, "description": "비밀번호 불일치"},
@@ -55,7 +58,7 @@ async def startup_event():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def login(request: schemas.UserLoginRequest):
+def login(request: schemas.LoginRequest):
     email = request.email
     password = request.password
     if not email or not password:
@@ -63,31 +66,29 @@ def login(request: schemas.UserLoginRequest):
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-    result = select_user_by_email_and_password(email, password, cnx)
-    if not result:
+    user = select_user_by_email_and_password(email, password, cnx)
+    if not user:
         raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
-    user_id, user_name, user_email, user_password = result
-    if user_password != password:
-        raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
-    return schemas.UserLoginResponse(
+    user_id, user_name, user_email, _ = user
+    return schemas.LoginResponse(
         success=True,
         message="로그인 성공",
-        data=schemas.UserLoginData(
+        data=schemas.LoginData(
             token="1234567890",
-            user=schemas.PublicUserInfo(id=user_id, email=user_email, name=user_name),
+            user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
         ),
     )
 
 @app.post(
     "/register",
-    response_model=schemas.UserSigninResponse,
+    response_model=schemas.RegisterResponse,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         409: {"model": schemas.ErrorResponse, "description": "이미 존재하는 이메일"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def register(request: schemas.UserSigninRequest):
+def register(request: schemas.RegisterRequest):
     email = request.email
     password = request.password
     name = request.name
@@ -97,44 +98,44 @@ def register(request: schemas.UserSigninRequest):
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
     if insert_user(email, password, name, cnx):
-        return schemas.UserSigninResponse(
+        return schemas.RegisterResponse(
             success=True,
             message="회원가입에 성공하셨습니다.",
-            data=schemas.PublicUserInfo(id=1, email=email, name=name),
+            data=schemas.PublicUser(id=1, email=email, name=name),
         )
     else:
         raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
 
 @app.post(
     "/logout",
-    response_model=schemas.UserLogoutResponse,
+    response_model=schemas.LogoutResponse,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def logout():
-    return schemas.UserLogoutResponse(success=True, message="로그아웃 성공")
+    return schemas.LogoutResponse(success=True, message="로그아웃 성공")
 
 @app.post(
     "/withdraw",
-    response_model=schemas.UserWithdrawResponse,
+    response_model=schemas.WithdrawResponse,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def withdraw():
-    return schemas.UserWithdrawResponse(success=True, message="회원탈퇴 성공")
+    return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
 
 @app.get(
     "/user",
-    response_model=schemas.UserMeResponse,
+    response_model=schemas.MeResponse,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "인증 필요"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def info_me():
-    return schemas.UserMeResponse(success=True, message="유저 본인정보 조회 성공", data=schemas.PublicUserInfo(id=1, email="test@example.com", name="홍길동"))
+    return schemas.MeResponse(success=True, message="유저 본인정보 조회 성공", data=schemas.PublicUser(id=1, email="test@example.com", name="홍길동"))
 
 @app.post(
     "/todos",
@@ -145,7 +146,21 @@ def info_me():
     },
 )
 def add_todo():
-    return schemas.TodoCreateResponse(success=True, message="할일 등록 성공", data=None)
+    return schemas.TodoCreateResponse(
+        success=True, 
+        message="할일 등록 성공", 
+        data=schemas.Todo(
+            id=1,
+            title="샘플 할일",
+            description="샘플 설명",
+            category="개인",
+            priority="보통",
+            dueDate=datetime.date.today(),
+            completed=False,
+            createdAt=datetime.datetime.now(),
+            updatedAt=datetime.datetime.now()
+        )
+    )
 
 @app.get(
     "/todos/{id}",
@@ -156,7 +171,21 @@ def add_todo():
     },
 )
 def get_todo(id: int):
-    return schemas.TodoResponse(success=True, message=f"{id}번째 할일 조회 성공", data=None)
+    return schemas.TodoResponse(
+        success=True, 
+        message=f"{id}번째 할일 조회 성공", 
+        data=schemas.Todo(
+            id=id,
+            title=f"{id}번째 할일",
+            description="샘플 설명",
+            category="개인",
+            priority="보통",
+            dueDate=datetime.date.today(),
+            completed=False,
+            createdAt=datetime.datetime.now(),
+            updatedAt=datetime.datetime.now()
+        )
+    )
 
 @app.get(
     "/todos",
@@ -166,7 +195,41 @@ def get_todo(id: int):
     },
 )
 def get_todos():
-    return schemas.TodoListResponse(success=True, message="할일 목록조회 성공", data=None)
+    return schemas.TodoListResponse(
+        success=True, 
+        message="할일 목록조회 성공", 
+        data=schemas.TodoListData(
+            todos=[
+                schemas.Todo(
+                    id=1,
+                    title="첫 번째 할일",
+                    description="샘플 설명",
+                    category="개인",
+                    priority="보통",
+                    dueDate=datetime.date.today(),
+                    completed=False,
+                    createdAt=datetime.datetime.now(),
+                    updatedAt=datetime.datetime.now()
+                ),
+                schemas.Todo(
+                    id=2,
+                    title="두 번째 할일",
+                    description="샘플 설명",
+                    category="업무",
+                    priority="높음",
+                    dueDate=datetime.date.today(),
+                    completed=True,
+                    createdAt=datetime.datetime.now(),
+                    updatedAt=datetime.datetime.now()
+                )
+            ],
+            pagination=schemas.PaginationMeta(
+                currentPage=1,
+                totalPages=1,
+                totalItems=2
+            )
+        )
+    )
 
 @app.put(
     "/todos/{id}",
@@ -178,26 +241,40 @@ def get_todos():
     },
 )
 def modify_todo(id: int):
-    return schemas.TodoUpdateResponse(success=True, message=f"{id}번째 할일 수정 성공", data=None)
+    return schemas.TodoUpdateResponse(
+        success=True, 
+        message=f"{id}번째 할일 수정 성공", 
+        data=schemas.Todo(
+            id=id,
+            title=f"수정된 {id}번째 할일",
+            description="수정된 설명",
+            category="학습",
+            priority="높음",
+            dueDate=datetime.date.today(),
+            completed=False,
+            createdAt=datetime.datetime.now(),
+            updatedAt=datetime.datetime.now()
+        )
+    )
 
 @app.delete(
     "/todos/{id}",
-    response_model=schemas.DeleteSuccessResponse,
+    response_model=schemas.DeleteResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def delete_todo(id: int):
-    return schemas.DeleteSuccessResponse(success=True, message=f"{id}번째 할일 삭제 성공")
+    return schemas.DeleteResponse(success=True, message=f"{id}번째 할일 삭제 성공")
 
 @app.patch(
     "/todos/{id}/toggle",
-    response_model=schemas.ToggleSuccessResponse,
+    response_model=schemas.ToggleResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def toggle_todo(id: int):
-    return schemas.ToggleSuccessResponse(success=True, message=f"{id}번째 할일 완료 상태 변경 성공")
+    return schemas.ToggleResponse(success=True, message=f"{id}번째 할일 완료 상태 변경 성공")
