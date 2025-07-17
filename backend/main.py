@@ -18,6 +18,7 @@ from mysql_connection import (
     get_todo_from_database,
     get_total_todos_from_datbase,
     insert_user,
+    put_todo_from_database,
     select_user_by_email,
     select_user_by_email_and_password,
 )
@@ -287,7 +288,7 @@ def get_todos(
 
 
 @app.put(
-    "/todos/{id}",
+    "/todos/{todo_id}",
     response_model=schemas.TodoUpdateResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
@@ -295,21 +296,16 @@ def get_todos(
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def modify_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
+def modify_todo(
+    todo_id: int,
+    todo: schemas.TodoUpdateRequest,
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    print("modify_todo_input", todo)
+    put_todo_from_database(current_user.id, todo_id, todo, cnx)
     return schemas.TodoUpdateResponse(
-        success=True,
-        message=f"{id}번째 할일 수정 성공",
-        data=schemas.Todo(
-            id=id,
-            title=f"수정된 {id}번째 할일",
-            description="수정된 설명",
-            category="학습",
-            priority="높음",
-            duedate=datetime.date.today(),
-            done=False,
-            created_at=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now(),
-        ),
+        success=True, message="수정 성공", data={"done": True}
     )
 
 

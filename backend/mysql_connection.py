@@ -174,5 +174,23 @@ def get_todo_from_database(user_id, todo_id, cnx: Any):
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         if row:
-            return row_to_dict()
+            return row_to_dict(row)
     return None
+
+
+def put_todo_from_database(user_id, todo_id, todo, cnx: Any):
+    # exclude_unset은 실제로 들어온 필드만 추출하고 싶을때 None 제거용
+    update_todo = todo.dict(exclude_unset=True)
+    with cnx.cursor(dictionary=True) as cursor:
+        set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
+        sql = f"UPDATE todo SET {set_clause} WHERE user_id = %s AND id = %s"
+        values = list(update_todo.values()) + [user_id, todo_id]
+        cursor.execute(sql, values)
+        cnx.commit()
+
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        print("result of row", row)
+        if row is None:
+            return None  # 혹은 raise HTTPException(status_code=404, detail="Todo not found")
