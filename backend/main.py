@@ -1,8 +1,4 @@
 import datetime
-from typing import Any
-
-from pydantic_core.core_schema import none_schema
-
 import schemas
 from config import (
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -56,21 +52,24 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        user_id = payload.get("sub")
-        user_email = payload.get("email")
-        if not user_id or not user_email:
-            raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
-        return user_id,user_email
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="토큰이 만료되었습니다.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
 
+def extract_user_info_from_payload(payload: dict):
+    user_id = payload.get("sub")
+    user_email = payload.get("email")
+    if not user_id or not user_email:
+        raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
+    return user_id,user_email
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), cnx = Depends(get_db_connection)):
     token = credentials.credentials
     print('token',token)
-    _, user_email = decode_jwt_token(token)
+    payload = decode_jwt_token(token)
+    user_id, user_email = extract_user_info_from_payload(payload)
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
