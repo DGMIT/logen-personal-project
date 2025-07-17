@@ -1,10 +1,11 @@
+from fastapi import HTTPException
 import mysql.connector
 from mysql.connector import errorcode
-from mysql.connector.connection import MySQLConnection
-
+from typing import Any
+from utils import get_password_hash, verify_password
 
 # database.py
-def ensure_tables_exist(cnx: MySQLConnection):
+def ensure_tables_exist(cnx: Any):
     cursor = cnx.cursor()
     cursor.execute(
         """
@@ -70,7 +71,7 @@ def get_connection(config):
         return None
 
 
-def get_all_users(cnx: MySQLConnection):
+def get_all_users(cnx: Any):
     with cnx.cursor() as cursor:
         cursor.execute("SELECT * FROM user")
         rows = cursor.fetchall()
@@ -78,21 +79,43 @@ def get_all_users(cnx: MySQLConnection):
             print(row)
 
 
-def insert_user(email: str, password: str, name: str, cnx: MySQLConnection):
-    cursor = cnx.cursor()
-    cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
-    count = cursor.fetchone()[0]
-    if count > 0:
-        print("이미 존재하는 이메일입니다.")
-        return
-    sql = "INSERT INTO user (email,password,name) VALUES (%s, %s, %s)"
-    cursor.execute(sql, (email, password, name))
-    cnx.commit()
-    cursor.close()
+def insert_user(email: str, password: str, name: str, cnx: Any):
+    with cnx.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+        count = cursor.fetchone()[0]
+        if count > 0:
+            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+        hashed_password = get_password_hash(password)
+        sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (email, hashed_password, name))
+        cnx.commit()
+    return True
 
 
-def select_user_by_email(email, cnx: MySQLConnection):
+def delete_user(user_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
+        cnx.commit()
+        return True
+
+
+def select_user_by_email(email, cnx: Any):
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
-        print("select_user_by_email", cursor.fetchone())
+        return cursor.fetchone()
+
+
+def select_user_by_email_and_password(email, password, cnx: Any):
+    with cnx.cursor() as cursor:
+        # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
+        _,_,_,find_user_password = select_user_by_email(email, cnx)
+        
+        sql = "SELECT * FROM user WHERE email = %s AND password = %s"
+        cursor.execute(sql,(email,find_user_password))
+        user = cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+        if not verify_password(password, find_user_password):
+            raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
+        return user

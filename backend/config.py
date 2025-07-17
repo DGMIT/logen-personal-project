@@ -11,3 +11,7 @@ config = {
     "database": os.getenv("DB_NAME", "todo_app"),
     "raise_on_warnings": True,
 }
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
