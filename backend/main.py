@@ -15,6 +15,7 @@ from mysql_connection import (
     delete_user,
     ensure_tables_exist,
     get_connection,
+    get_total_todos,
     insert_user,
     select_user_by_email,
     select_user_by_email_and_password,
@@ -76,7 +77,7 @@ def get_current_user(
     cnx=Depends(get_db_connection),
 ):
     token = credentials.credentials
-    print("token", token)
+
     payload = decode_jwt_token(token)
     user_id, user_email = extract_user_info_from_payload(payload)
     user = select_user_by_email(user_email, cnx)
@@ -231,10 +232,9 @@ def add_todo(
             description="샘플 설명",
             category="개인",
             priority="보통",
-            dueDate=datetime.date.today(),
-            completed=False,
-            createdAt=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now(),
+            duedate=datetime.date.today(),
+            done=False,
+            created_at=datetime.datetime.now(),
         ),
     )
 
@@ -257,10 +257,9 @@ def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_use
             description="샘플 설명",
             category="개인",
             priority="보통",
-            dueDate=datetime.date.today(),
-            completed=False,
-            createdAt=datetime.datetime.now(),
-            updatedAt=datetime.datetime.now(),
+            duedate=datetime.date.today(),
+            done=False,
+            created_at=datetime.datetime.now(),
         ),
     )
 
@@ -272,35 +271,15 @@ def get_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_use
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def get_todos(current_user: schemas.PublicUser = Depends(get_current_user)):
+def get_todos(
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
     return schemas.TodoListResponse(
         success=True,
         message="할일 목록조회 성공",
         data=schemas.TodoListData(
-            todos=[
-                schemas.Todo(
-                    id=1,
-                    title="첫 번째 할일",
-                    description="샘플 설명",
-                    category="개인",
-                    priority="보통",
-                    dueDate=datetime.date.today(),
-                    completed=False,
-                    createdAt=datetime.datetime.now(),
-                    updatedAt=datetime.datetime.now(),
-                ),
-                schemas.Todo(
-                    id=2,
-                    title="두 번째 할일",
-                    description="샘플 설명",
-                    category="업무",
-                    priority="높음",
-                    dueDate=datetime.date.today(),
-                    completed=True,
-                    createdAt=datetime.datetime.now(),
-                    updatedAt=datetime.datetime.now(),
-                ),
-            ],
+            todos=get_total_todos(current_user.id, cnx),
             pagination=schemas.PaginationMeta(
                 currentPage=1, totalPages=1, totalItems=2
             ),
@@ -327,9 +306,9 @@ def modify_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_
             description="수정된 설명",
             category="학습",
             priority="높음",
-            dueDate=datetime.date.today(),
-            completed=False,
-            createdAt=datetime.datetime.now(),
+            duedate=datetime.date.today(),
+            done=False,
+            created_at=datetime.datetime.now(),
             updatedAt=datetime.datetime.now(),
         ),
     )

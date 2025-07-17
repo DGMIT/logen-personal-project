@@ -5,7 +5,7 @@ import mysql.connector
 import schemas
 from fastapi import HTTPException
 from mysql.connector import errorcode
-from utils import get_password_hash, verify_password
+from utils import get_password_hash, rows_to_dict, verify_password
 
 
 # database.py
@@ -61,7 +61,6 @@ def ensure_tables_exist(cnx: Any):
 
 
 def get_connection(config):
-    print(config)
     try:
         cnx = mysql.connector.connect(**config)
         return cnx
@@ -104,12 +103,10 @@ def delete_user(user_id, cnx: Any):
 
 
 def select_user_by_email(email, cnx: Any):
-    print(email)
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
         result = cursor.fetchone()
-        print("result", result)
         return result
 
 
@@ -145,8 +142,16 @@ def add_todo_into_database(
                 todo.description,
                 todo.category,
                 todo.priority,
-                todo.due_date,
+                todo.duedate,
                 user_id,
             ),
         )
     cnx.commit()
+
+
+def get_total_todos(user_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        sql = "SELECT * FROM todo WHERE user_id = %s"
+        cursor.execute(sql, (user_id,))
+        rows = cursor.fetchall()
+        return rows_to_dict(cursor, rows)

@@ -22,10 +22,9 @@ class Todo(BaseModel):
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
     priority: Literal["낮음", "보통", "높음"]
-    due_date: date = Field(..., alias="dueDate")
-    completed: bool
-    created_at: datetime = Field(..., alias="createdAt")
-    updated_at: datetime = Field(..., alias="updatedAt")
+    duedate: date
+    done: bool
+    created_at: datetime
 
     class Config:
         allow_population_by_field_name = True
@@ -86,7 +85,7 @@ class TodoCreateRequest(BaseModel):
     title: str
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
-    due_date: date = Field(..., alias="dueDate")
+    duedate: date
     priority: Literal["낮음", "보통", "높음"]
 
 
@@ -126,13 +125,13 @@ class TodoUpdateRequest(BaseModel):
     title: Optional[str]
     description: Optional[str]
     category: Optional[Literal["업무", "학습", "개인", "기타"]]
-    due_date: Optional[date] = Field(None, alias="dueDate")
+    duedate: Optional[date]
     priority: Optional[Literal["높음", "보통", "낮음"]]
-    completed: Optional[bool]
+    done: Optional[bool]
 
     class Config:
         allow_population_by_field_name = True
-        fields = {"due_date": "dueDate"}
+        fields = {"duedate": "duedate"}
 
 
 class TodoUpdateResponse(BaseModel):
