@@ -212,3 +212,30 @@ def delete_todo_from_database(user_id, todo_id, cnx: Any):
                 status_code=500, detail="할일 삭제 관련 데이터베이스 오류"
             )
         return True
+
+
+def toggle_todo_from_database(user_id, todo_id, cnx: Any):
+    with cnx.cursor(dictionary=True) as cursor:
+        # 먼저 해당 todo가 존재하는지 확인
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="할일을 찾을 수 없습니다.")
+        
+        # 현재 done 상태를 반전시킴
+        current_done = row['done']
+        new_done = 0 if current_done else 1
+        
+        # done 상태 업데이트
+        sql = "UPDATE todo SET done = %s WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (new_done, user_id, todo_id))
+        cnx.commit()
+        
+        # 업데이트된 todo 정보 반환
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        updated_row = cursor.fetchone()
+        return updated_row
+
+

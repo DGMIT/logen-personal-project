@@ -22,6 +22,7 @@ from mysql_connection import (
     put_todo_from_database,
     select_user_by_email,
     select_user_by_email_and_password,
+    toggle_todo_from_database,
 )
 
 app = FastAPI()
@@ -328,14 +329,25 @@ def delete_todo(
 
 
 @app.patch(
-    "/todos/{id}/toggle",
+    "/todos/{todo_id}/toggle",
     response_model=schemas.ToggleResponse,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def toggle_todo(id: int, current_user: schemas.PublicUser = Depends(get_current_user)):
-    return schemas.ToggleResponse(
-        success=True, message=f"{id}번째 할일 완료 상태 변경 성공"
-    )
+def toggle_todo(
+    todo_id: int,
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
+    try:
+        updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)
+        status = "완료" if updated_todo['done'] else "미완료"
+        return schemas.ToggleResponse(
+            success=True, 
+            message=f"할일 상태가 {status}로 변경되었습니다."
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"토글 오류: {err}")
