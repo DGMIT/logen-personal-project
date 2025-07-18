@@ -1,8 +1,12 @@
-from fastapi import HTTPException
-import mysql.connector
-from mysql.connector import errorcode
+from datetime import date
 from typing import Any
-from utils import get_password_hash, verify_password
+
+import mysql.connector
+import schemas
+from fastapi import HTTPException
+from mysql.connector import errorcode
+from utils import get_password_hash, row_to_dict, rows_to_dict, verify_password
+
 
 # database.py
 def ensure_tables_exist(cnx: Any):
@@ -57,7 +61,6 @@ def ensure_tables_exist(cnx: Any):
 
 
 def get_connection(config):
-    print(config)
     try:
         cnx = mysql.connector.connect(**config)
         return cnx
@@ -80,16 +83,21 @@ def get_all_users(cnx: Any):
 
 
 def insert_user(email: str, password: str, name: str, cnx: Any):
-    with cnx.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
-        count = cursor.fetchone()[0]
-        if count > 0:
-            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
-        hashed_password = get_password_hash(password)
-        sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (email, hashed_password, name))
-        cnx.commit()
-    return True
+    try:
+        with cnx.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+            count = cursor.fetchone()[0]
+            if count > 0:
+                raise HTTPException(
+                    status_code=409, detail="이미 존재하는 이메일입니다."
+                )
+            hashed_password = get_password_hash(password)
+            sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (email, hashed_password, name))
+            cnx.commit()
+        return True
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"디비 오류 :{err}")
 
 
 def delete_user(user_id, cnx: Any):
@@ -103,19 +111,131 @@ def select_user_by_email(email, cnx: Any):
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
-        return cursor.fetchone()
+        result = cursor.fetchone()
+        if not result:
+            return None
+        return result
 
 
 def select_user_by_email_and_password(email, password, cnx: Any):
     with cnx.cursor() as cursor:
         # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
-        _,_,_,find_user_password = select_user_by_email(email, cnx)
-        
+        user = select_user_by_email(email, cnx)
+        _, _, _, find_user_password = select_user_by_email(email, cnx)
         sql = "SELECT * FROM user WHERE email = %s AND password = %s"
-        cursor.execute(sql,(email,find_user_password))
+        cursor.execute(sql, (email, find_user_password))
         user = cursor.fetchone()
         if not user:
-            raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+            return None
         if not verify_password(password, find_user_password):
-            raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
+            return None
         return user
+
+
+def add_todo_into_database(
+    todo: schemas.TodoCreateRequest,
+    user_id: int,
+    cnx: Any,
+):
+    with cnx.cursor() as cursor:
+        sql = """
+            INSERT INTO todo (title, description, category, priority, duedate, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(
+            sql,
+            (
+                todo.title,
+                todo.description,
+                todo.category,
+                todo.priority,
+                todo.duedate,
+                user_id,
+            ),
+        )
+        inserted_id = cursor.lastrowid
+    cnx.commit()
+    return inserted_id
+
+
+def get_total_todos_from_datbase(user_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        sql = "SELECT * FROM todo WHERE user_id = %s"
+        cursor.execute(sql, (user_id,))
+        rows = cursor.fetchall()
+        if rows:
+            return rows_to_dict(cursor, rows)
+    return None
+
+
+def get_todo_from_database(user_id, todo_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        if row:
+            return row_to_dict(row)
+    return None
+
+
+def put_todo_from_database(user_id, todo_id, todo, cnx: Any):
+    # exclude_unset은 실제로 들어온 필드만 추출하고 싶을때 None 제거용
+    update_todo = todo.dict(exclude_unset=True)
+    with cnx.cursor(dictionary=True) as cursor:
+        set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
+        sql = f"UPDATE todo SET {set_clause} WHERE user_id = %s AND id = %s"
+        values = list(update_todo.values()) + [user_id, todo_id]
+        cursor.execute(sql, values)
+        cnx.commit()
+
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        print("result of row", row)
+        if row is None:
+            raise HTTPException(
+                status_code=500, detail="할일 수정 관련 데이터베이스 오류"
+            )
+        return row
+
+
+def delete_todo_from_database(user_id, todo_id, cnx: Any):
+    with cnx.cursor() as cursor:
+        sql = "DELETE FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        cnx.commit()
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        if row:
+            raise HTTPException(
+                status_code=500, detail="할일 삭제 관련 데이터베이스 오류"
+            )
+        return True
+
+
+def toggle_todo_from_database(user_id, todo_id, cnx: Any):
+    with cnx.cursor(dictionary=True) as cursor:
+        # 먼저 해당 todo가 존재하는지 확인
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="할일을 찾을 수 없습니다.")
+        
+        # 현재 done 상태를 반전시킴
+        current_done = row['done']
+        new_done = 0 if current_done else 1
+        
+        # done 상태 업데이트
+        sql = "UPDATE todo SET done = %s WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (new_done, user_id, todo_id))
+        cnx.commit()
+        
+        # 업데이트된 todo 정보 반환
+        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        cursor.execute(sql, (user_id, todo_id))
+        updated_row = cursor.fetchone()
+        return updated_row
+
+

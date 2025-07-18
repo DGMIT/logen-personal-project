@@ -22,14 +22,9 @@ class Todo(BaseModel):
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
     priority: Literal["낮음", "보통", "높음"]
-    due_date: date = Field(..., alias="dueDate")
-    completed: bool
-    created_at: datetime = Field(..., alias="createdAt")
-    updated_at: datetime = Field(..., alias="updatedAt")
-
-    class Config:
-        allow_population_by_field_name = True
-        orm_mode = True
+    duedate: date
+    done: bool
+    created_at: datetime
 
 
 class PublicUser(BaseModel):
@@ -86,7 +81,7 @@ class TodoCreateRequest(BaseModel):
     title: str
     description: str
     category: Literal["업무", "개인", "학습", "기타"]
-    due_date: date = Field(..., alias="dueDate")
+    duedate: date
     priority: Literal["낮음", "보통", "높음"]
 
 
@@ -123,22 +118,18 @@ class TodoListResponse(BaseModel):
 
 
 class TodoUpdateRequest(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
-    category: Optional[Literal["업무", "학습", "개인", "기타"]]
-    due_date: Optional[date] = Field(None, alias="dueDate")
-    priority: Optional[Literal["높음", "보통", "낮음"]]
-    completed: Optional[bool]
-
-    class Config:
-        allow_population_by_field_name = True
-        fields = {"due_date": "dueDate"}
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[Literal["업무", "학습", "개인", "기타"]] = None
+    duedate: Optional[date] = None
+    priority: Optional[Literal["높음", "보통", "낮음"]] = None
+    done: Optional[bool] = None
 
 
 class TodoUpdateResponse(BaseModel):
     success: bool
     message: str
-    data: Todo
+    data: TodoUpdateRequest
 
 
 class DeleteResponse(BaseModel):

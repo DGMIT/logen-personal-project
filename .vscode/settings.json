@@ -1,10 +1,12 @@
 {
     "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": [
-        "editor.formatOnSave",
-        "source.organizeImports",
-        "source.sortImports",
-        "source.fixAll"
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "79"
     ],
     "cSpell.words": [
         "venv",
