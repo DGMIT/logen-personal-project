@@ -82,7 +82,7 @@ def get_all_users(cnx: Any):
             print(row)
 
 
-def insert_user(email: str, password: str, name: str, cnx: Any):
+def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
     try:
         with cnx.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
@@ -222,20 +222,18 @@ def toggle_todo_from_database(user_id, todo_id, cnx: Any):
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="할일을 찾을 수 없습니다.")
-        
+
         # 현재 done 상태를 반전시킴
-        current_done = row['done']
+        current_done = row["done"]
         new_done = 0 if current_done else 1
-        
+
         # done 상태 업데이트
         sql = "UPDATE todo SET done = %s WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (new_done, user_id, todo_id))
         cnx.commit()
-        
+
         # 업데이트된 todo 정보 반환
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
         return updated_row
-
-
