@@ -1,6 +1,8 @@
+from typing import Union
+
 import bcrypt
 
-columns = [
+columns: list[str] = [
     "id",
     "title",
     "description",
@@ -23,10 +25,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     )
 
 
-def row_to_dict(rows):
+def row_to_dict(rows: tuple[Union[str, int]]) -> dict[str, Union[str, int]]:
     return dict(zip(columns, rows))
 
 
-def rows_to_dict(cursor, rows):
+def rows_to_dict(cursor, rows) -> list[dict[str, Union[str, int]]]:
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
