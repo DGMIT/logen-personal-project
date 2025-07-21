@@ -376,7 +376,7 @@ def modify_todo(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="마감일이 공백입니다.",
             )
-        if todo.done is not None and not isinstance(todo.done, bool):
+        if todo.done is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="done 값은 boolean이어야 합니다.",
@@ -459,7 +459,8 @@ def toggle_todo(
             )
         updated_todo["done"] = bool(updated_todo["done"])
         return schemas.ToggleResponse(
-            success=True, message=f"할일 상태가 {updated_todo['done']}로 변경되었습니다."
+            success=True,
+            message=f"할일 상태가 {updated_todo['done']}로 변경되었습니다.",
         )
     except Exception as err:
         print("toggle_todo Unexpected error:", err)

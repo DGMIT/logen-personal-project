@@ -20,7 +20,9 @@ security = HTTPBearer()
 def get_db_connection() -> Generator[MySQLConnection]:
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="데이터베이스 연결에 실패하였습니다.")
+        raise HTTPException(
+            status_code=500, detail="데이터베이스 연결에 실패하였습니다."
+        )
     try:
         yield cnx  # type: ignore
     finally:
@@ -38,7 +40,8 @@ def get_current_user(
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="유효하지 않은 토큰입니다. 다시 로그인해 주세요."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="유효하지 않은 토큰입니다. 다시 로그인해 주세요.",
         )
     return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
 
@@ -209,7 +212,7 @@ def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
 
 
 def put_todo_from_database(
-    user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: Any
+    user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: MySQLConnection
 ):
     update_todo = todo.model_dump(exclude_unset=True)
     with cnx.cursor(dictionary=True) as cursor:
@@ -235,7 +238,8 @@ def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         row = cursor.fetchone()
         if row:
             raise HTTPException(
-                status_code=500, detail="할일 삭제에 실패하였습니다. 다시 시도해 주세요."
+                status_code=500,
+                detail="할일 삭제에 실패하였습니다. 다시 시도해 주세요.",
             )
         return True
 
