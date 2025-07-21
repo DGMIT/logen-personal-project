@@ -1,10 +1,11 @@
 import datetime
-from typing import Union
+from typing import Any, Union
 
 import bcrypt
 import jwt
+import schemas
 from config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 columns: list[str] = [
     "id",
@@ -69,9 +70,12 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
 
 
-def extract_user_info_from_payload(payload: dict):
+def extract_user_info_from_payload(payload: dict[str, Any]) -> tuple[int, str]:
     user_id = payload.get("sub")
     user_email = payload.get("email")
-    if not user_id or not user_email:
-        raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
-    return user_id, user_email
+    if user_id is None or user_email is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="토큰에 필요한 정보가 없습니다.",
+        )
+    return int(user_id), user_email

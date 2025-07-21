@@ -3,6 +3,7 @@ import datetime
 import schemas
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBearer
+from mysql.connector.connection import MySQLConnection
 from mysql_connection import (
     add_todo_into_database,
     delete_todo_from_database,
@@ -35,7 +36,9 @@ security = HTTPBearer()
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
+def login(
+    request: schemas.LoginRequest, cnx: MySQLConnection = Depends(get_db_connection)
+):
     try:
         email = request.email
         password = request.password

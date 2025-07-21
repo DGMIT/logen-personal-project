@@ -1,7 +1,13 @@
 from datetime import date, datetime
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, TypedDict
 
 from pydantic import BaseModel, EmailStr, Field
+
+
+class Token(TypedDict):
+    sub: int
+    email: str
+    exp: int
 
 
 class User(BaseModel):

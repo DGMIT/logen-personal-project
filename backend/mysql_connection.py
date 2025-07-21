@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, Generator
 
 import mysql.connector
 import schemas
 from config import config
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from mysql.connector import errorcode
+from mysql.connector import MySQLConnection, errorcode
 from utils import (
     decode_jwt_token,
     extract_user_info_from_payload,
@@ -18,12 +18,12 @@ from utils import (
 security = HTTPBearer()
 
 
-def get_db_connection():
+def get_db_connection() -> Generator[MySQLConnection]:
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결 실패")
     try:
-        yield cnx
+        yield cnx  # type: ignore
     finally:
         if cnx and cnx.is_connected():
             cnx.close()
