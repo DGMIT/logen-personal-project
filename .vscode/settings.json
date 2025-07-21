@@ -6,7 +6,7 @@
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [
         "--line-length",
-        "79"
+        "120"
     ],
     "python.analysis.typeCheckingMode": "strict",
     "python.analysis.diagnosticMode": "workspace",
@@ -21,20 +21,21 @@
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "cSpell.words": [
-        "venv",
-        "pycache",
-        "pytest",
-        "mypy",
-        "pypackages",
+        "apdisk",
+        "database",
+        "dotenv",
+        "duedate",
         "fseventsd",
         "icns",
-        "apdisk",
-        "dotenv",
-        "pyjwt",
         "isort",
-        "VARCHAR",
+        "mypy",
+        "pycache",
+        "pypackages",
+        "pytest",
+        "pyjwt",
         "TINYINT",
-        "duedate"
+        "VARCHAR",
+        "venv"
     ],
     "todo-tree.regex.regex": "((\\*|//|#|<!--|;|/\\*|^)\\s*($TAGS)|^\\s*- \\[ \\])",
     "workbench.settings.applyToAllProfiles": []
