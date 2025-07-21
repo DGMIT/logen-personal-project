@@ -188,10 +188,10 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
             success=True, message="유저 본인정보 조회 성공", data=current_user
         )
     except Exception as err:
-        print(err)
+        print("user search error", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"유저 정보 조회 오류: {err}",
+            detail="서버 오류로 유저 정보 조회에 실패하였습니다.",
         )
 
 
