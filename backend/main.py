@@ -35,6 +35,9 @@ def get_db_connection():
     cnx = get_connection(config)
     try:
         yield cnx
+    except:
+        if not cnx or not cnx.is_connected():
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
     finally:
         if cnx and cnx.is_connected():
             cnx.close()
@@ -112,14 +115,13 @@ async def startup_event():
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def login(request: schemas.LoginRequest):
+def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
     email = request.email
     password = request.password
     if not email or not password:
         raise HTTPException(
             status_code=400, detail="이메일 또는 비밀번호가 비어있습니다"
         )
-    cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
     user = select_user_by_email_and_password(email, password, cnx)
@@ -146,14 +148,17 @@ def login(request: schemas.LoginRequest):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def register(request: schemas.RegisterRequest):
+def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
     try:
         email = request.email
         password = request.password
         name = request.name
-        if not email or not password or not name:
-            raise HTTPException(status_code=400, detail="공백이 존재합니다.")
-        cnx = get_connection(config)
+        if not email:
+            raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+        if not password:
+            raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
+        if not name:
+            raise HTTPException(status_code=400, detail="이름을 입력해주세요")
         if not cnx or not cnx.is_connected():
             raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
         if insert_user(email, password, name, cnx):
@@ -176,7 +181,10 @@ def register(request: schemas.RegisterRequest):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def logout(current_user: schemas.PublicUser = Depends(get_current_user)):
+def logout(
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx=Depends(get_db_connection),
+):
     return schemas.LogoutResponse(success=True, message="로그아웃 성공")
 
 
