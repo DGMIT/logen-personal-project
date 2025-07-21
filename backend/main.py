@@ -135,11 +135,7 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def logout(
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    status_code=status.HTTP_204_NO_CONTENT,
-    cnx=Depends(get_db_connection),
-):
+def logout():
     try:
         return schemas.LogoutResponse(success=True, message="로그아웃 성공")
     except HTTPException:
