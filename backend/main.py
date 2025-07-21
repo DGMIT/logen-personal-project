@@ -36,24 +36,34 @@ security = HTTPBearer()
     },
 )
 def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
-    email = request.email
-    password = request.password
-    if not email:
-        raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
-    if not password:
-        raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
-    user = select_user_by_email_and_password(email, password, cnx)
-    if not user:
-        raise HTTPException(status_code=404, detail="존재하지 않는 유저입니다.")
-    user_id, user_name, user_email, _ = user
-    return schemas.LoginResponse(
-        success=True,
-        message="로그인 성공",
-        data=schemas.LoginData(
-            token=create_access_token(data={"sub": str(user_id), "email": user_email}),
-            user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
-        ),
-    )
+    try:
+        email = request.email
+        password = request.password
+        if not email:
+            raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+        if not password:
+            raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
+        user = select_user_by_email_and_password(email, password, cnx)
+        if not user:
+            raise HTTPException(status_code=404, detail="존재하지 않는 유저입니다.")
+        user_id, user_name, user_email, _ = user
+        return schemas.LoginResponse(
+            success=True,
+            message="로그인에 성공하셨습니다.",
+            data=schemas.LoginData(
+                token=create_access_token(
+                    data={"sub": str(user_id), "email": user_email}
+                ),
+                user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
+            ),
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        print("Login Unexpected error:", error)
+        raise HTTPException(
+            status_code=500, detail="서버 오류로 로그인에 실패하였습니다."
+        )
 
 
 @app.post(
@@ -86,11 +96,10 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
             data=schemas.PublicUser(id=user_id, email=email, name=name),
         )
     except HTTPException:
-        raise  # 이미 처리된 예외는 그대로 다시 raise
-
+        raise
     except Exception as err:
         # 내부 로그만 출력하고 사용자에겐 일반 메시지
-        print("Unexpected error:", err)
+        print("Register Unexpected error:", err)
         raise HTTPException(
             status_code=500, detail="서버 오류로 회원가입에 실패했습니다."
         )
