@@ -20,7 +20,7 @@ security = HTTPBearer()
 def get_db_connection() -> Generator[MySQLConnection]:
     cnx = get_connection(config)
     if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="DB 연결 실패")
+        raise HTTPException(status_code=500, detail="데이터베이스 연결에 실패하였습니다.")
     try:
         yield cnx  # type: ignore
     finally:
@@ -38,7 +38,7 @@ def get_current_user(
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="유효하지 않은 토큰입니다."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="유효하지 않은 토큰입니다. 다시 로그인해 주세요."
         )
     return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
 
@@ -131,9 +131,8 @@ def delete_user(user_id: int, cnx: Any):
         if affected == 0:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="탈퇴 대상 유저를 찾을 수 없습니다.",
+                detail="탈퇴할 사용자를 찾을 수 없습니다.",
             )
-
         return True
 
 
@@ -145,23 +144,22 @@ def select_user_by_email(email: str, cnx: Any):
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="존재하지 않는 사용자입니다",
+                detail="해당 사용자를 찾을 수 없습니다.",
             )
         return result
 
 
 def select_user_by_email_and_password(email: str, password: str, cnx: Any):
-    # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
     user_id, user_name, user_email, user_password = select_user_by_email(email, cnx)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="존재하지 않는 사용자입니다.",
+            detail="해당 사용자를 찾을 수 없습니다.",
         )
     if not verify_password(password, user_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="비밀번호가 올바르지 않습니다.",
+            detail="비밀번호가 올바르지 않습니다. 다시 확인해 주세요.",
         )
     return user_id, user_name, user_email
 
@@ -213,7 +211,6 @@ def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
 def put_todo_from_database(
     user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: Any
 ):
-    # exclude_unset은 실제로 들어온 필드만 추출하고 싶을때 None 제거용
     update_todo = todo.model_dump(exclude_unset=True)
     with cnx.cursor(dictionary=True) as cursor:
         set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
@@ -236,28 +233,25 @@ def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
-        return row
+        if row:
+            raise HTTPException(
+                status_code=500, detail="할일 삭제에 실패하였습니다. 다시 시도해 주세요."
+            )
+        return True
 
 
 def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
     with cnx.cursor(dictionary=True) as cursor:
-        # 먼저 해당 todo가 존재하는지 확인
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="할일을 찾을 수 없습니다.")
-
-        # 현재 done 상태를 반전시킴
+            raise HTTPException(status_code=404, detail="해당 할일을 찾을 수 없습니다.")
         current_done = row["done"]
         new_done = 0 if current_done else 1
-
-        # done 상태 업데이트
         sql = "UPDATE todo SET done = %s WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (new_done, user_id, todo_id))
         cnx.commit()
-
-        # 업데이트된 todo 정보 반환
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
