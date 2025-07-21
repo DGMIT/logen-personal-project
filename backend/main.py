@@ -142,6 +142,10 @@ def logout():
         raise
     except Exception as error:
         print("서버 오류로 로그아웃에 실패하였습니다.", error)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 오류로 회원탈퇴에 실패하였싑니다.",
+        )
 
 
 @app.post(
@@ -156,9 +160,17 @@ def withdraw(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    print("withdraw current_user", current_user)
-    delete_user(current_user.id, cnx)
-    return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
+    try:
+        delete_user(current_user.id, cnx)
+        return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
+    except HTTPException:
+        raise
+    except Exception as error:
+        print("withdraw Unexpected error:", error)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 오류로 회원탈퇴에 실패하였습니다.",
+        )
 
 
 @app.get(

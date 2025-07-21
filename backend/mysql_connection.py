@@ -131,7 +131,14 @@ def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
 def delete_user(user_id, cnx: Any):
     with cnx.cursor() as cursor:
         cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
+        affected = cursor.rowcount
         cnx.commit()
+        if affected == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="탈퇴 대상 유저를 찾을 수 없습니다.",
+            )
+
         return True
 
 
