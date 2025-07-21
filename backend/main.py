@@ -162,7 +162,7 @@ def logout():
 )
 def withdraw(
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         delete_user(current_user.id, cnx)
@@ -213,7 +213,23 @@ def add_todo(
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
+        if (
+            not todo.title
+            or not todo.description
+            or not todo.category
+            or not todo.duedate
+            or not todo.priority
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="할일 내용을 입력해주세요.",
+            )
         todo_id = add_todo_into_database(todo, current_user.id, cnx)
+        if not todo_id:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="DB 에러입니다.",
+            )
         return schemas.TodoCreateResponse(
             success=True,
             message="할일 등록 성공",
@@ -228,11 +244,13 @@ def add_todo(
                 created_at=datetime.datetime.now(),
             ),
         )
+    except HTTPException:
+        raise
     except Exception as err:
-        print(err)
+        print(f"add new post error {err}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"할일 등록 오류: {err}",
+            detail="서버 오류로 할일 추가에 실패하였습니다.",
         )
 
 
