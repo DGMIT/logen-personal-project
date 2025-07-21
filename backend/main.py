@@ -16,8 +16,7 @@ from mysql_connection import (
     select_user_by_email_and_password,
     toggle_todo_from_database,
 )
-
-from backend.utils import create_access_token
+from utils import create_access_token
 
 app = FastAPI()
 
@@ -55,7 +54,7 @@ def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="존재하지 않는 유저입니다.",
             )
-        user_id, user_name, user_email, _ = user
+        user_id, user_name, user_email = user
         return schemas.LoginResponse(
             success=True,
             message="로그인에 성공하셨습니다.",
@@ -188,7 +187,6 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
             success=True, message="유저 본인정보 조회 성공", data=current_user
         )
     except Exception as err:
-        print("user search error", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="서버 오류로 유저 정보 조회에 실패하였습니다.",
@@ -285,7 +283,7 @@ def get_todos(
             success=True,
             message="할일 목록조회 성공",
             data=schemas.TodoListData(
-                todos=get_total_todos_from_datbase(current_user.id, cnx),
+                todos=get_total_todos_from_datbase(current_user.id, cnx) or [],
                 pagination=schemas.PaginationMeta(
                     currentPage=1, totalPages=1, totalItems=2
                 ),
@@ -372,9 +370,9 @@ def toggle_todo(
 ):
     try:
         updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)
-        status = "완료" if updated_todo["done"] else "미완료"
+        current_todo_status = updated_todo["done"]
         return schemas.ToggleResponse(
-            success=True, message=f"할일 상태가 {status}로 변경되었습니다."
+            success=True, message=f"할일 상태가 {current_todo_status}로 변경되었습니다."
         )
     except Exception as err:
         print(err)

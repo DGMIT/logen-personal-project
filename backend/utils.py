@@ -3,13 +3,8 @@ from typing import Union
 
 import bcrypt
 import jwt
+from config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY
 from fastapi import HTTPException
-
-from backend.config import (
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
-    JWT_ALGORITHM,
-    JWT_SECRET_KEY,
-)
 
 columns: list[str] = [
     "id",
