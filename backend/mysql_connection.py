@@ -109,14 +109,6 @@ def get_connection(config: Any):
         return None
 
 
-def get_all_users(cnx: Any):
-    with cnx.cursor() as cursor:
-        cursor.execute("SELECT * FROM user")
-        rows = cursor.fetchall()
-        for row in rows:
-            print(row)
-
-
 def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
     with cnx.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
@@ -214,7 +206,6 @@ def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
-        print("get_todo_from_database", type(row), row)
         if row:
             return row
 
