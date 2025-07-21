@@ -33,11 +33,10 @@ security = HTTPBearer()
 
 def get_db_connection():
     cnx = get_connection(config)
+    if not cnx or not cnx.is_connected():
+        raise HTTPException(status_code=500, detail="DB 연결 실패")
     try:
         yield cnx
-    except:
-        if not cnx or not cnx.is_connected():
-            raise HTTPException(status_code=500, detail="DB 연결 실패")
     finally:
         if cnx and cnx.is_connected():
             cnx.close()
@@ -125,7 +124,6 @@ def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
     if not cnx or not cnx.is_connected():
         raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
     user = select_user_by_email_and_password(email, password, cnx)
-    print("user", user)
     if not user:
         raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
     user_id, user_name, user_email, _ = user
@@ -161,17 +159,21 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
             raise HTTPException(status_code=400, detail="이름을 입력해주세요")
         if not cnx or not cnx.is_connected():
             raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-        if insert_user(email, password, name, cnx):
-            return schemas.RegisterResponse(
-                success=True,
-                message="회원가입에 성공하셨습니다.",
-                data=schemas.PublicUser(id=1, email=email, name=name),
-            )
-        else:
-            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+        user_id = insert_user(email, password, name, cnx)
+        return schemas.RegisterResponse(
+            success=True,
+            message="회원가입에 성공하셨습니다.",
+            data=schemas.PublicUser(id=1, email=email, name=name),
+        )
+    except HTTPException:
+        raise  # 이미 처리된 예외는 그대로 다시 raise
+
     except Exception as err:
-        print(err)
-        raise HTTPException(status_code=500, detail=f"회원가입 오류: {err}")
+        # 내부 로그만 출력하고 사용자에겐 일반 메시지
+        print("Unexpected error:", err)
+        raise HTTPException(
+            status_code=500, detail="서버 오류로 회원가입에 실패했습니다."
+        )
 
 
 @app.post(
@@ -353,7 +355,9 @@ def delete_todo(
 ):
     try:
         delete_todo_from_database(current_user.id, todo_id, cnx)
-        return schemas.DeleteResponse(success=True, message=f"{todo_id}번째 할일 삭제 성공")
+        return schemas.DeleteResponse(
+            success=True, message=f"{todo_id}번째 할일 삭제 성공"
+        )
     except Exception as err:
         print(err)
         raise HTTPException(status_code=500, detail=f"할일 삭제 오류: {err}")

@@ -93,10 +93,13 @@ def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
             hashed_password = get_password_hash(password)
             sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
             cursor.execute(sql, (email, hashed_password, name))
+            user_id = cursor.lastrowid
             cnx.commit()
-        return True
+        return user_id
     except Exception as err:
-        raise HTTPException(status_code=500, detail=f"디비 오류 :{err}")
+        raise HTTPException(
+            status_code=500, detail=f"회원가입 시도중 DB 등록 오류 발생 :{err}"
+        )
 
 
 def delete_user(user_id, cnx: Any):
@@ -107,12 +110,10 @@ def delete_user(user_id, cnx: Any):
 
 
 def select_user_by_email(email: str, cnx: Any):
-    print("select_user_by_email", email, cnx)
     with cnx.cursor() as cursor:
-        sql = "SELECT *  fFROM user WHERE email = %s"
+        sql = "SELECT *  FROM user WHERE email = %s"
         cursor.execute(sql, (email,))
         result = cursor.fetchone()
-        print("select_user_by_email result", result)
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
