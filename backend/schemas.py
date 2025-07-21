@@ -11,6 +11,13 @@ class User(BaseModel):
     # password 필드는 DB 모델에서만 사용, API 응답에는 포함하지 않음
 
 
+class UserInDB(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    password: str
+
+
 class Todo(BaseModel):
     id: int
     title: str

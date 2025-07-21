@@ -1,7 +1,7 @@
 import datetime
 
 import schemas
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBearer
 from mysql_connection import (
     add_todo_into_database,
@@ -69,6 +69,7 @@ def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
 @app.post(
     "/register",
     response_model=schemas.RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         409: {"model": schemas.ErrorResponse, "description": "이미 존재하는 이메일"},
@@ -108,20 +109,28 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
 @app.post(
     "/logout",
     response_model=schemas.LogoutResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
 def logout(
     current_user: schemas.PublicUser = Depends(get_current_user),
+    status_code=status.HTTP_204_NO_CONTENT,
     cnx=Depends(get_db_connection),
 ):
-    return schemas.LogoutResponse(success=True, message="로그아웃 성공")
+    try:
+        return schemas.LogoutResponse(success=True, message="로그아웃 성공")
+    except HTTPException:
+        raise
+    except Exception as error:
+        print("서버 오류로 로그아웃에 실패하였습니다.", error)
 
 
 @app.post(
     "/withdraw",
     response_model=schemas.WithdrawResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
@@ -138,6 +147,7 @@ def withdraw(
 @app.get(
     "/user",
     response_model=schemas.MeResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         401: {"model": schemas.ErrorResponse, "description": "인증 필요"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -156,6 +166,7 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
 @app.post(
     "/todos",
     response_model=schemas.TodoCreateResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -190,6 +201,7 @@ def add_todo(
 @app.get(
     "/todos/{todo_id}",
     response_model=schemas.TodoResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -219,6 +231,7 @@ def get_todo(
 @app.get(
     "/todos",
     response_model=schemas.TodoListResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
@@ -246,6 +259,7 @@ def get_todos(
 @app.put(
     "/todos/{todo_id}",
     response_model=schemas.TodoUpdateResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
@@ -272,6 +286,7 @@ def modify_todo(
 @app.delete(
     "/todos/{todo_id}",
     response_model=schemas.DeleteResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -295,6 +310,7 @@ def delete_todo(
 @app.patch(
     "/todos/{todo_id}/toggle",
     response_model=schemas.ToggleResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},

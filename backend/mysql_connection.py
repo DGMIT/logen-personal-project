@@ -151,14 +151,20 @@ def select_user_by_email(email: str, cnx: Any):
 def select_user_by_email_and_password(email: str, password: str, cnx: Any):
     with cnx.cursor() as cursor:
         # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
-        _, _, _, find_user_password = select_user_by_email(email, cnx)
-        sql = "SELECT * FROM user WHERE email = %s AND password = %s"
-        cursor.execute(sql, (email, find_user_password))
-        user = cursor.fetchone()
+        user = select_user_by_email(email, cnx)
         if not user:
-            return None
-        if not verify_password(password, find_user_password):
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="존재하지 않는 사용자입니다.",
+            )
+        sql = "SELECT * FROM user WHERE email = %s AND password = %s"
+        cursor.execute(sql, (email, user.id))
+        user = cursor.fetchone()
+        if not verify_password(password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="비밀번호가 올바르지 않습니다.",
+            )
         return user
 
 
