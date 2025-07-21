@@ -315,9 +315,10 @@ def modify_todo(
 ):
     try:
         print("modify_todo_input", todo)
-        put_todo_from_database(current_user.id, todo_id, todo, cnx)
+        print("modify_todo_input", type(todo))
+        modified_todo = put_todo_from_database(current_user.id, todo_id, todo, cnx)
         return schemas.TodoUpdateResponse(
-            success=True, message="수정 성공", data={"done": True}
+            success=True, message="수정 성공", data=modified_todo
         )
     except Exception as err:
         print(err)

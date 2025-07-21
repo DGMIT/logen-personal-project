@@ -131,7 +131,7 @@ class TodoUpdateRequest(BaseModel):
 class TodoUpdateResponse(BaseModel):
     success: bool
     message: str
-    data: TodoUpdateRequest
+    data: Todo
 
 
 class DeleteResponse(BaseModel):

@@ -219,9 +219,11 @@ def get_todo_from_database(user_id: int, todo_id: int, cnx: Any):
             return row_to_dict(row)
 
 
-def put_todo_from_database(user_id: int, todo_id: int, todo: schemas.Todo, cnx: Any):
+def put_todo_from_database(
+    user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: Any
+):
     # exclude_unset은 실제로 들어온 필드만 추출하고 싶을때 None 제거용
-    update_todo = todo.dict(exclude_unset=True)
+    update_todo = todo.model_dump(exclude_unset=True)
     with cnx.cursor(dictionary=True) as cursor:
         set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
         sql = f"UPDATE todo SET {set_clause} WHERE user_id = %s AND id = %s"
