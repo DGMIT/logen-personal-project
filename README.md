@@ -111,11 +111,11 @@
 ### 인증 관련
 
 ```
-POST   /api/auth/register      # 회원가입
-POST   /api/auth/login         # 로그인
-POST   /api/auth/logout        # 로그아웃
-POST   /api/auth/withdraw      # 회원탈퇴
-GET    /api/auth/me            # 내 정보 보기
+POST   /api/register      # 회원가입
+POST   /api/login         # 로그인
+POST   /api/logout        # 로그아웃
+POST   /api/withdraw      # 회원탈퇴
+GET    /api/me            # 내 정보 보기
 ```
 
 ### 할일 관리
@@ -136,17 +136,17 @@ PATCH  /api/todos/{id}/toggle   # 완료 상태 토글
 ### SQL query + Index
 user
 ```
-CREATE TABLE user (
+CREATE DATABASE IF NOT EXISTS todo_app;
+USE todo_app;
+
+CREATE TABLE IF NOT EXISTS user (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL
 );
-```
 
-todo
-```
-CREATE TABLE todo (
+CREATE TABLE IF NOT EXISTS todo (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     description TEXT,
@@ -162,10 +162,10 @@ CREATE TABLE todo (
 
 index
 ```
-CREATE INDEX idx_todo_user_id ON todo(user_id);
-CREATE INDEX idx_todo_duedate ON todo(duedate);
-CREATE INDEX idx_todo_done ON todo(done);
-CREATE INDEX idx_todo_user_priority ON todo(user_id, priority);
+CREATE INDEX IF NOT EXISTS idx_todo_user_id ON todo(user_id);
+CREATE INDEX IF NOT EXISTS idx_todo_duedate ON todo(duedate);
+CREATE INDEX IF NOT EXISTS idx_todo_done ON todo(done);
+CREATE INDEX IF NOT EXISTS idx_todo_user_priority ON todo(user_id, priority);
 ```
 
 
