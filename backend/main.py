@@ -255,6 +255,42 @@ def add_todo(
 
 
 @app.get(
+    "/todos",
+    response_model=schemas.TodoListResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
+    },
+)
+def get_todos(
+    current_user: schemas.PublicUser = Depends(get_current_user),
+    cnx: MySQLConnection = Depends(get_db_connection),
+):
+    try:
+        todos_raw = get_total_todos_from_datbase(current_user.id, cnx) or []
+        todos = []
+        for todo in todos_raw:
+            todo["done"] = bool(todo["done"])
+            todos.append(schemas.Todo(**todo))
+        return schemas.TodoListResponse(
+            success=True,
+            message="할일 목록조회 성공",
+            data=schemas.TodoListData(
+                todos=todos,
+                pagination=schemas.PaginationMeta(
+                    currentPage=1, totalPages=1, totalItems=len(todos)
+                ),
+            ),
+        )
+    except Exception as err:
+        print("get_todos Unexpected error:", err)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 목록 조회 오류: {err}",
+        )
+
+
+@app.get(
     "/todos/{todo_id}",
     response_model=schemas.TodoResponse,
     status_code=status.HTTP_200_OK,
@@ -290,39 +326,6 @@ def get_todo(
         )
 
 
-@app.get(
-    "/todos",
-    response_model=schemas.TodoListResponse,
-    status_code=status.HTTP_200_OK,
-    responses={
-        500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
-    },
-)
-def get_todos(
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
-):
-    try:
-        todos_raw = get_total_todos_from_datbase(current_user.id, cnx) or []
-        todos = [schemas.Todo(**todo) for todo in todos_raw]
-        return schemas.TodoListResponse(
-            success=True,
-            message="할일 목록조회 성공",
-            data=schemas.TodoListData(
-                todos=todos,
-                pagination=schemas.PaginationMeta(
-                    currentPage=1, totalPages=1, totalItems=2
-                ),
-            ),
-        )
-    except Exception as err:
-        print("get_todos Unexpected error:", err)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"할일 목록 조회 오류: {err}",
-        )
-
-
 @app.put(
     "/todos/{todo_id}",
     response_model=schemas.TodoUpdateResponse,
@@ -340,9 +343,54 @@ def modify_todo(
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
+        # 1. 존재하지 않는 할일 ID 확인
+        existing_todo = get_todo_from_database(current_user.id, todo_id, cnx)
+        if not existing_todo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="할일이 존재하지 않습니다.",
+            )
+        # 2. 필드별 공백/유효성 체크 (입력된 값만 검사)
+        if todo.title is not None and not todo.title.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="제목이 공백입니다.",
+            )
+        if todo.description is not None and not todo.description.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="설명이 공백입니다.",
+            )
+        if todo.category is not None and not str(todo.category).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="카테고리가 공백입니다.",
+            )
+        if todo.priority is not None and not str(todo.priority).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="우선순위가 공백입니다.",
+            )
+        if todo.duedate is not None and str(todo.duedate).strip() == "":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="마감일이 공백입니다.",
+            )
+        if todo.done is not None and not isinstance(todo.done, bool):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="done 값은 boolean이어야 합니다.",
+            )
+        # 3. DB 수정
         modified_todo = put_todo_from_database(current_user.id, todo_id, todo, cnx)
+        if not modified_todo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="할일이 존재하지 않습니다.",
+            )
+        modified_todo["done"] = bool(modified_todo["done"])
         return schemas.TodoUpdateResponse(
-            success=True, message="수정 성공", data=modified_todo
+            success=True, message="수정 성공", data=schemas.Todo(**modified_todo)
         )
     except HTTPException:
         raise
@@ -369,10 +417,17 @@ def delete_todo(
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
-        delete_todo_from_database(current_user.id, todo_id, cnx)
+        result = delete_todo_from_database(current_user.id, todo_id, cnx)
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="할일이 존재하지 않습니다.",
+            )
         return schemas.DeleteResponse(
             success=True, message=f"{todo_id}번째 할일 삭제 성공"
         )
+    except HTTPException:
+        raise
     except Exception as err:
         print("delete_todo Unexpected error:", err)
         raise HTTPException(
@@ -397,9 +452,14 @@ def toggle_todo(
 ):
     try:
         updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)
-        current_todo_status = updated_todo["done"]
+        if not updated_todo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="할일이 존재하지 않습니다.",
+            )
+        updated_todo["done"] = bool(updated_todo["done"])
         return schemas.ToggleResponse(
-            success=True, message=f"할일 상태가 {current_todo_status}로 변경되었습니다."
+            success=True, message=f"할일 상태가 {updated_todo['done']}로 변경되었습니다."
         )
     except Exception as err:
         print("toggle_todo Unexpected error:", err)

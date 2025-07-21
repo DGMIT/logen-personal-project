@@ -225,11 +225,6 @@ def put_todo_from_database(
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
-        if row is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="할일이 존재하지 않습니다.",
-            )
         return row
 
 
@@ -241,11 +236,7 @@ def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
-        if row:
-            raise HTTPException(
-                status_code=500, detail="할일 삭제 관련 데이터베이스 오류"
-            )
-        return True
+        return row
 
 
 def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
