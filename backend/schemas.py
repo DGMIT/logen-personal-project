@@ -1,12 +1,13 @@
 from datetime import date, datetime
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, TypedDict
 
 from pydantic import BaseModel, EmailStr, Field
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+class Token(TypedDict):
+    sub: int
+    email: str
+    exp: int
 
 
 class User(BaseModel):
@@ -14,6 +15,13 @@ class User(BaseModel):
     name: str
     email: EmailStr
     # password 필드는 DB 모델에서만 사용, API 응답에는 포함하지 않음
+
+
+class UserInDB(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    password: str
 
 
 class Todo(BaseModel):
@@ -129,7 +137,7 @@ class TodoUpdateRequest(BaseModel):
 class TodoUpdateResponse(BaseModel):
     success: bool
     message: str
-    data: TodoUpdateRequest
+    data: Todo
 
 
 class DeleteResponse(BaseModel):
