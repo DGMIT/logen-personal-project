@@ -266,7 +266,7 @@ def add_todo(
 def get_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         todo = get_todo_from_database(current_user.id, todo_id, cnx)
@@ -274,6 +274,7 @@ def get_todo(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="조회한 할일이 업습니다."
             )
+        todo["done"] = bool(todo["done"])
         return schemas.TodoResponse(
             success=True,
             message=f"{todo_id}번째 할일 조회 성공",
@@ -282,7 +283,7 @@ def get_todo(
     except HTTPException:
         raise
     except Exception as err:
-        print(err)
+        print("get_todo Unexpected error:", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"할일 조회 오류: {err}",
@@ -302,18 +303,20 @@ def get_todos(
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
+        todos_raw = get_total_todos_from_datbase(current_user.id, cnx) or []
+        todos = [schemas.Todo(**todo) for todo in todos_raw]
         return schemas.TodoListResponse(
             success=True,
             message="할일 목록조회 성공",
             data=schemas.TodoListData(
-                todos=get_total_todos_from_datbase(current_user.id, cnx) or [],
+                todos=todos,
                 pagination=schemas.PaginationMeta(
                     currentPage=1, totalPages=1, totalItems=2
                 ),
             ),
         )
     except Exception as err:
-        print(err)
+        print("get_todos Unexpected error:", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"할일 목록 조회 오류: {err}",
@@ -337,14 +340,14 @@ def modify_todo(
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
-        print("modify_todo_input", todo)
-        print("modify_todo_input", type(todo))
         modified_todo = put_todo_from_database(current_user.id, todo_id, todo, cnx)
         return schemas.TodoUpdateResponse(
             success=True, message="수정 성공", data=modified_todo
         )
+    except HTTPException:
+        raise
     except Exception as err:
-        print(err)
+        print("modify_todo Unexpected error:", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"할일 수정 오류: {err}",
@@ -371,7 +374,7 @@ def delete_todo(
             success=True, message=f"{todo_id}번째 할일 삭제 성공"
         )
     except Exception as err:
-        print(err)
+        print("delete_todo Unexpected error:", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"할일 삭제 오류: {err}",
@@ -399,7 +402,7 @@ def toggle_todo(
             success=True, message=f"할일 상태가 {current_todo_status}로 변경되었습니다."
         )
     except Exception as err:
-        print(err)
+        print("toggle_todo Unexpected error:", err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"토글 오류: {err}",

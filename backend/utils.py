@@ -29,8 +29,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     )
 
 
-def row_to_dict(rows: tuple[Union[str, int]]) -> dict[str, Union[str, int]]:
-    return dict(zip(columns, rows))
+def row_to_dict(row: tuple[Any, ...], columns: list[str]) -> dict[str, Any]:
+    return dict(zip(columns, row))
 
 
 def rows_to_dict(

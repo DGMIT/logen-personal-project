@@ -10,7 +10,6 @@ from utils import (
     decode_jwt_token,
     extract_user_info_from_payload,
     get_password_hash,
-    row_to_dict,
     rows_to_dict,
     verify_password,
 )
@@ -178,7 +177,7 @@ def select_user_by_email_and_password(email: str, password: str, cnx: Any):
 def add_todo_into_database(
     todo: schemas.TodoCreateRequest,
     user_id: int,
-    cnx: Any,
+    cnx: MySQLConnection,
 ):
     with cnx.cursor(dictionary=True) as cursor:
         sql = """
@@ -210,13 +209,14 @@ def get_total_todos_from_datbase(user_id: int, cnx: Any):
             return rows_to_dict(cursor, rows)
 
 
-def get_todo_from_database(user_id: int, todo_id: int, cnx: Any):
-    with cnx.cursor() as cursor:
+def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
+    with cnx.cursor(dictionary=True) as cursor:
         sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
+        print("get_todo_from_database", type(row), row)
         if row:
-            return row_to_dict(row)
+            return row
 
 
 def put_todo_from_database(
@@ -236,7 +236,8 @@ def put_todo_from_database(
         row = cursor.fetchone()
         if row is None:
             raise HTTPException(
-                status_code=500, detail="할일 수정 관련 데이터베이스 오류"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="할일이 존재하지 않습니다.",
             )
         return row
 
