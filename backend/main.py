@@ -88,7 +88,9 @@ def login(
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
+def register(
+    request: schemas.RegisterRequest, cnx: MySQLConnection = Depends(get_db_connection)
+):
     try:
         email = request.email
         password = request.password
@@ -192,7 +194,7 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
     except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="서버 오류로 유저 정보 조회에 실패하였습니다.",
+            detail=f"서버 오류로 유저 정보 조회에 실패하였습니다. {err}",
         )
 
 
@@ -208,7 +210,7 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
 def add_todo(
     todo: schemas.TodoCreateRequest,
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         todo_id = add_todo_into_database(todo, current_user.id, cnx)
@@ -279,7 +281,7 @@ def get_todo(
 )
 def get_todos(
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         return schemas.TodoListResponse(
@@ -314,7 +316,7 @@ def modify_todo(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         print("modify_todo_input", todo)
@@ -343,7 +345,7 @@ def modify_todo(
 def delete_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         delete_todo_from_database(current_user.id, todo_id, cnx)
@@ -370,7 +372,7 @@ def delete_todo(
 def toggle_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)

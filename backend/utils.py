@@ -3,7 +3,6 @@ from typing import Any, Union
 
 import bcrypt
 import jwt
-import schemas
 from config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY
 from fastapi import HTTPException, status
 
@@ -34,7 +33,9 @@ def row_to_dict(rows: tuple[Union[str, int]]) -> dict[str, Union[str, int]]:
     return dict(zip(columns, rows))
 
 
-def rows_to_dict(cursor, rows) -> list[dict[str, Union[str, int]]]:
+def rows_to_dict(
+    cursor: Any, rows: list[tuple[Union[str, int]]]
+) -> list[dict[str, Union[str, int]]]:
     print(rows)
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
@@ -53,7 +54,7 @@ def create_access_token(
         expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
             minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         )
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": int(expire.timestamp())})  # type: ignore
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 

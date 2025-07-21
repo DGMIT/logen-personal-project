@@ -31,7 +31,7 @@ def get_db_connection() -> Generator[MySQLConnection]:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    cnx=Depends(get_db_connection),
+    cnx: MySQLConnection = Depends(get_db_connection),
 ):
     token = credentials.credentials
     payload = decode_jwt_token(token)
@@ -96,7 +96,7 @@ def ensure_tables_exist(cnx: Any):
     cursor.close()
 
 
-def get_connection(config):
+def get_connection(config: Any):
     try:
         cnx = mysql.connector.connect(**config)
         return cnx
@@ -132,7 +132,7 @@ def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
     return user_id
 
 
-def delete_user(user_id, cnx: Any):
+def delete_user(user_id: int, cnx: Any):
     with cnx.cursor() as cursor:
         cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
         affected = cursor.rowcount
