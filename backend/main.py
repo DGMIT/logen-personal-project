@@ -77,10 +77,13 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
         if not name:
             raise HTTPException(status_code=400, detail="이름을 입력해주세요")
         user_id = insert_user(email, password, name, cnx)
+        if not user_id:
+            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+
         return schemas.RegisterResponse(
             success=True,
             message="회원가입에 성공하셨습니다.",
-            data=schemas.PublicUser(id=1, email=email, name=name),
+            data=schemas.PublicUser(id=user_id, email=email, name=name),
         )
     except HTTPException:
         raise  # 이미 처리된 예외는 그대로 다시 raise

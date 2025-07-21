@@ -5,7 +5,14 @@ import schemas
 from fastapi import Depends, HTTPException, security, status
 from fastapi.security import HTTPAuthorizationCredentials
 from mysql.connector import errorcode
-from utils import get_password_hash, row_to_dict, rows_to_dict, verify_password
+from utils import (
+    decode_jwt_token,
+    extract_user_info_from_payload,
+    get_password_hash,
+    row_to_dict,
+    rows_to_dict,
+    verify_password,
+)
 
 
 def get_db_connection():
@@ -108,24 +115,17 @@ def get_all_users(cnx: Any):
 
 
 def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
-    try:
-        with cnx.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
-            count = cursor.fetchone()[0]
-            if count > 0:
-                raise HTTPException(
-                    status_code=409, detail="이미 존재하는 이메일입니다."
-                )
-            hashed_password = get_password_hash(password)
-            sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (email, hashed_password, name))
-            user_id = cursor.lastrowid
-            cnx.commit()
-        return user_id
-    except Exception as err:
-        raise HTTPException(
-            status_code=500, detail=f"회원가입 시도중 DB 등록 오류 발생 :{err}"
-        )
+    with cnx.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+        count = cursor.fetchone()[0]
+        if count > 0:
+            return False
+        hashed_password = get_password_hash(password)
+        sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (email, hashed_password, name))
+        user_id = cursor.lastrowid
+        cnx.commit()
+    return user_id
 
 
 def delete_user(user_id, cnx: Any):
