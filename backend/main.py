@@ -213,9 +213,13 @@ def withdraw(
     },
 )
 def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
-    return schemas.MeResponse(
-        success=True, message="유저 본인정보 조회 성공", data=current_user
-    )
+    try:
+        return schemas.MeResponse(
+            success=True, message="유저 본인정보 조회 성공", data=current_user
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"유저 정보 조회 오류: {err}")
 
 
 @app.post(
@@ -231,21 +235,25 @@ def add_todo(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    todo_id = add_todo_into_database(todo, current_user.id, cnx)
-    return schemas.TodoCreateResponse(
-        success=True,
-        message="할일 등록 성공",
-        data=schemas.Todo(
-            id=todo_id,
-            title=todo.title,
-            description=todo.description,
-            category=todo.category,
-            priority=todo.priority,
-            duedate=datetime.date.today(),
-            done=False,
-            created_at=datetime.datetime.now(),
-        ),
-    )
+    try:
+        todo_id = add_todo_into_database(todo, current_user.id, cnx)
+        return schemas.TodoCreateResponse(
+            success=True,
+            message="할일 등록 성공",
+            data=schemas.Todo(
+                id=todo_id,
+                title=todo.title,
+                description=todo.description,
+                category=todo.category,
+                priority=todo.priority,
+                duedate=datetime.date.today(),
+                done=False,
+                created_at=datetime.datetime.now(),
+            ),
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"할일 등록 오류: {err}")
 
 
 @app.get(
@@ -261,14 +269,20 @@ def get_todo(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    todo = get_todo_from_database(current_user.id, todo_id, cnx)
-    if not todo:
-        raise HTTPException(status_code=404, detail="조회한 할일이 업습니다.")
-    return schemas.TodoResponse(
-        success=True,
-        message=f"{todo_id}번째 할일 조회 성공",
-        data=schemas.Todo(**todo),
-    )
+    try:
+        todo = get_todo_from_database(current_user.id, todo_id, cnx)
+        if not todo:
+            raise HTTPException(status_code=404, detail="조회한 할일이 업습니다.")
+        return schemas.TodoResponse(
+            success=True,
+            message=f"{todo_id}번째 할일 조회 성공",
+            data=schemas.Todo(**todo),
+        )
+    except HTTPException:
+        raise
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"할일 조회 오류: {err}")
 
 
 @app.get(
@@ -282,16 +296,20 @@ def get_todos(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    return schemas.TodoListResponse(
-        success=True,
-        message="할일 목록조회 성공",
-        data=schemas.TodoListData(
-            todos=get_total_todos_from_datbase(current_user.id, cnx),
-            pagination=schemas.PaginationMeta(
-                currentPage=1, totalPages=1, totalItems=2
+    try:
+        return schemas.TodoListResponse(
+            success=True,
+            message="할일 목록조회 성공",
+            data=schemas.TodoListData(
+                todos=get_total_todos_from_datbase(current_user.id, cnx),
+                pagination=schemas.PaginationMeta(
+                    currentPage=1, totalPages=1, totalItems=2
+                ),
             ),
-        ),
-    )
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"할일 목록 조회 오류: {err}")
 
 
 @app.put(
@@ -309,11 +327,15 @@ def modify_todo(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    print("modify_todo_input", todo)
-    put_todo_from_database(current_user.id, todo_id, todo, cnx)
-    return schemas.TodoUpdateResponse(
-        success=True, message="수정 성공", data={"done": True}
-    )
+    try:
+        print("modify_todo_input", todo)
+        put_todo_from_database(current_user.id, todo_id, todo, cnx)
+        return schemas.TodoUpdateResponse(
+            success=True, message="수정 성공", data={"done": True}
+        )
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"할일 수정 오류: {err}")
 
 
 @app.delete(
@@ -329,8 +351,12 @@ def delete_todo(
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx=Depends(get_db_connection),
 ):
-    delete_todo_from_database(current_user.id, todo_id, cnx)
-    return schemas.DeleteResponse(success=True, message=f"{todo_id}번째 할일 삭제 성공")
+    try:
+        delete_todo_from_database(current_user.id, todo_id, cnx)
+        return schemas.DeleteResponse(success=True, message=f"{todo_id}번째 할일 삭제 성공")
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail=f"할일 삭제 오류: {err}")
 
 
 @app.patch(
