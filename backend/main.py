@@ -28,6 +28,7 @@ security = HTTPBearer()
 @app.post(
     "/login",
     response_model=schemas.LoginResponse,
+    status_code=status.HTTP_200_OK,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         401: {"model": schemas.ErrorResponse, "description": "비밀번호 불일치"},
@@ -40,12 +41,20 @@ def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
         email = request.email
         password = request.password
         if not email:
-            raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일을 입력해주세요."
+            )
         if not password:
-            raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="비밀번호를 입력해주세요",
+            )
         user = select_user_by_email_and_password(email, password, cnx)
         if not user:
-            raise HTTPException(status_code=404, detail="존재하지 않는 유저입니다.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="존재하지 않는 유저입니다.",
+            )
         user_id, user_name, user_email, _ = user
         return schemas.LoginResponse(
             success=True,
@@ -62,7 +71,8 @@ def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
     except Exception as error:
         print("Login Unexpected error:", error)
         raise HTTPException(
-            status_code=500, detail="서버 오류로 로그인에 실패하였습니다."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 오류로 로그인에 실패하였습니다.",
         )
 
 
@@ -82,14 +92,24 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
         password = request.password
         name = request.name
         if not email:
-            raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일을 입력해주세요."
+            )
         if not password:
-            raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="비밀번호를 입력해주세요",
+            )
         if not name:
-            raise HTTPException(status_code=400, detail="이름을 입력해주세요")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="이름을 입력해주세요"
+            )
         user_id = insert_user(email, password, name, cnx)
         if not user_id:
-            raise HTTPException(status_code=409, detail="이미 존재하는 이메일입니다.")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="이미 존재하는 이메일입니다.",
+            )
 
         return schemas.RegisterResponse(
             success=True,
@@ -102,14 +122,15 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
         # 내부 로그만 출력하고 사용자에겐 일반 메시지
         print("Register Unexpected error:", err)
         raise HTTPException(
-            status_code=500, detail="서버 오류로 회원가입에 실패했습니다."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 오류로 회원가입에 실패했습니다.",
         )
 
 
 @app.post(
     "/logout",
     response_model=schemas.LogoutResponse,
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
@@ -130,7 +151,7 @@ def logout(
 @app.post(
     "/withdraw",
     response_model=schemas.WithdrawResponse,
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     responses={
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
@@ -160,13 +181,16 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"유저 정보 조회 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"유저 정보 조회 오류: {err}",
+        )
 
 
 @app.post(
     "/todos",
     response_model=schemas.TodoCreateResponse,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_201_CREATED,
     responses={
         400: {"model": schemas.ErrorResponse, "description": "입력값 오류"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -195,7 +219,10 @@ def add_todo(
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"할일 등록 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 등록 오류: {err}",
+        )
 
 
 @app.get(
@@ -215,7 +242,9 @@ def get_todo(
     try:
         todo = get_todo_from_database(current_user.id, todo_id, cnx)
         if not todo:
-            raise HTTPException(status_code=404, detail="조회한 할일이 업습니다.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="조회한 할일이 업습니다."
+            )
         return schemas.TodoResponse(
             success=True,
             message=f"{todo_id}번째 할일 조회 성공",
@@ -225,7 +254,10 @@ def get_todo(
         raise
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"할일 조회 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 조회 오류: {err}",
+        )
 
 
 @app.get(
@@ -253,7 +285,10 @@ def get_todos(
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"할일 목록 조회 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 목록 조회 오류: {err}",
+        )
 
 
 @app.put(
@@ -280,13 +315,16 @@ def modify_todo(
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"할일 수정 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 수정 오류: {err}",
+        )
 
 
 @app.delete(
     "/todos/{todo_id}",
     response_model=schemas.DeleteResponse,
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     responses={
         404: {"model": schemas.ErrorResponse, "description": "할일 없음"},
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
@@ -304,7 +342,10 @@ def delete_todo(
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"할일 삭제 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"할일 삭제 오류: {err}",
+        )
 
 
 @app.patch(
@@ -329,4 +370,7 @@ def toggle_todo(
         )
     except Exception as err:
         print(err)
-        raise HTTPException(status_code=500, detail=f"토글 오류: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"토글 오류: {err}",
+        )
