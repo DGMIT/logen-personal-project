@@ -30,5 +30,6 @@ def row_to_dict(rows: tuple[Union[str, int]]) -> dict[str, Union[str, int]]:
 
 
 def rows_to_dict(cursor, rows) -> list[dict[str, Union[str, int]]]:
+    print(rows)
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in rows]

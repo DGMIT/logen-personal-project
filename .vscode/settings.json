@@ -1,13 +1,25 @@
 {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true
+        "source.organizeImports": "explicit"
     },
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [
         "--line-length",
         "79"
     ],
+    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportGeneralTypeIssues": "warning",
+        "reportMissingTypeStubs": "warning",
+        "reportMissingTypeArgument": "none",
+        "reportUnknownArgumentType": "none"
+    },
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
     "cSpell.words": [
         "venv",
         "pycache",
@@ -23,5 +35,7 @@
         "VARCHAR",
         "TINYINT",
         "duedate"
-    ]
+    ],
+    "todo-tree.regex.regex": "((\\*|//|#|<!--|;|/\\*|^)\\s*($TAGS)|^\\s*- \\[ \\])",
+    "workbench.settings.applyToAllProfiles": []
 }

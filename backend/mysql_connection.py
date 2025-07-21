@@ -1,9 +1,8 @@
-from datetime import date
 from typing import Any
 
 import mysql.connector
 import schemas
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from mysql.connector import errorcode
 from utils import get_password_hash, row_to_dict, rows_to_dict, verify_password
 
@@ -107,20 +106,24 @@ def delete_user(user_id, cnx: Any):
         return True
 
 
-def select_user_by_email(email, cnx: Any):
+def select_user_by_email(email: str, cnx: Any):
+    print("select_user_by_email", email, cnx)
     with cnx.cursor() as cursor:
-        sql = "SELECT * FROM user WHERE email = %s"
+        sql = "SELECT *  fFROM user WHERE email = %s"
         cursor.execute(sql, (email,))
         result = cursor.fetchone()
+        print("select_user_by_email result", result)
         if not result:
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="존재하지 않는 사용자입니다",
+            )
         return result
 
 
-def select_user_by_email_and_password(email, password, cnx: Any):
+def select_user_by_email_and_password(email: str, password: str, cnx: Any):
     with cnx.cursor() as cursor:
         # 유저 이메일을 통해 디비에서 해당 유저 정보를 가져온다
-        user = select_user_by_email(email, cnx)
         _, _, _, find_user_password = select_user_by_email(email, cnx)
         sql = "SELECT * FROM user WHERE email = %s AND password = %s"
         cursor.execute(sql, (email, find_user_password))
@@ -159,6 +162,7 @@ def add_todo_into_database(
 
 
 def get_total_todos_from_datbase(user_id, cnx: Any):
+    print("user_id", user_id, type(user_id))
     with cnx.cursor() as cursor:
         sql = "SELECT * FROM todo WHERE user_id = %s"
         cursor.execute(sql, (user_id,))

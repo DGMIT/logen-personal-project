@@ -40,11 +40,13 @@ def get_db_connection():
             cnx.close()
 
 
-def create_access_token(data: dict, expires_delta: datetime.timedelta | None = None):
+def create_access_token(
+    data: dict[str, str], expires_delta: datetime.timedelta | None = None
+):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
         raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
 
-    to_encode = data.copy()
+    to_encode: dict[str, str] = data.copy()
     if expires_delta:
         expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
     else:
@@ -111,33 +113,28 @@ async def startup_event():
     },
 )
 def login(request: schemas.LoginRequest):
-    try:
-        email = request.email
-        password = request.password
-        if not email or not password:
-            raise HTTPException(
-                status_code=400, detail="이메일 또는 비밀번호가 비어있습니다"
-            )
-        cnx = get_connection(config)
-        if not cnx or not cnx.is_connected():
-            raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
-        user = select_user_by_email_and_password(email, password, cnx)
-        if not user:
-            raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
-        user_id, user_name, user_email, _ = user
-        return schemas.LoginResponse(
-            success=True,
-            message="로그인 성공",
-            data=schemas.LoginData(
-                token=create_access_token(
-                    data={"sub": str(user_id), "email": user_email}
-                ),
-                user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
-            ),
+    email = request.email
+    password = request.password
+    if not email or not password:
+        raise HTTPException(
+            status_code=400, detail="이메일 또는 비밀번호가 비어있습니다"
         )
-    except Exception as err:
-        print(err)
-        raise HTTPException(status_code=500, detail=f"로그인 오류: {err}")
+    cnx = get_connection(config)
+    if not cnx or not cnx.is_connected():
+        raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+    user = select_user_by_email_and_password(email, password, cnx)
+    print("user", user)
+    if not user:
+        raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+    user_id, user_name, user_email, _ = user
+    return schemas.LoginResponse(
+        success=True,
+        message="로그인 성공",
+        data=schemas.LoginData(
+            token=create_access_token(data={"sub": str(user_id), "email": user_email}),
+            user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
+        ),
+    )
 
 
 @app.post(
@@ -343,10 +340,9 @@ def toggle_todo(
 ):
     try:
         updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)
-        status = "완료" if updated_todo['done'] else "미완료"
+        status = "완료" if updated_todo["done"] else "미완료"
         return schemas.ToggleResponse(
-            success=True, 
-            message=f"할일 상태가 {status}로 변경되었습니다."
+            success=True, message=f"할일 상태가 {status}로 변경되었습니다."
         )
     except Exception as err:
         print(err)
