@@ -1,107 +1,28 @@
 import datetime
 
-import jwt
 import schemas
-from config import (
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
-    JWT_ALGORITHM,
-    JWT_SECRET_KEY,
-    config,
-)
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from mysql_connection import (
     add_todo_into_database,
     delete_todo_from_database,
     delete_user,
-    ensure_tables_exist,
-    get_connection,
+    get_current_user,
+    get_db_connection,
     get_todo_from_database,
     get_total_todos_from_datbase,
     insert_user,
     put_todo_from_database,
-    select_user_by_email,
     select_user_by_email_and_password,
     toggle_todo_from_database,
 )
+
+from backend.utils import create_access_token
 
 app = FastAPI()
 
 
 security = HTTPBearer()
-
-
-def get_db_connection():
-    cnx = get_connection(config)
-    if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="DB 연결 실패")
-    try:
-        yield cnx
-    finally:
-        if cnx and cnx.is_connected():
-            cnx.close()
-
-
-def create_access_token(
-    data: dict[str, str], expires_delta: datetime.timedelta | None = None
-):
-    if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
-        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
-
-    to_encode: dict[str, str] = data.copy()
-    if expires_delta:
-        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
-    else:
-        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            minutes=int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-    return encoded_jwt
-
-
-def decode_jwt_token(token: str):
-    if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
-        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="토큰이 만료되었습니다.")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
-
-
-def extract_user_info_from_payload(payload: dict):
-    user_id = payload.get("sub")
-    user_email = payload.get("email")
-    if not user_id or not user_email:
-        raise HTTPException(status_code=401, detail="토큰에 필요한 정보가 없습니다.")
-    return user_id, user_email
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    cnx=Depends(get_db_connection),
-):
-    token = credentials.credentials
-
-    payload = decode_jwt_token(token)
-    user_id, user_email = extract_user_info_from_payload(payload)
-    user = select_user_by_email(user_email, cnx)
-    if not user:
-        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
-    return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
-
-
-@app.on_event("startup")
-async def startup_event():
-    cnx = get_connection(config)
-    if cnx and cnx.is_connected():
-        ensure_tables_exist(cnx)
-    else:
-        print("DB 연결에 실패했습니다.")
-        exit(1)
 
 
 @app.post(
@@ -117,15 +38,13 @@ async def startup_event():
 def login(request: schemas.LoginRequest, cnx=Depends(get_db_connection)):
     email = request.email
     password = request.password
-    if not email or not password:
-        raise HTTPException(
-            status_code=400, detail="이메일 또는 비밀번호가 비어있습니다"
-        )
-    if not cnx or not cnx.is_connected():
-        raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
+    if not email:
+        raise HTTPException(status_code=400, detail="이메일을 입력해주세요.")
+    if not password:
+        raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
     user = select_user_by_email_and_password(email, password, cnx)
     if not user:
-        raise HTTPException(status_code=404, detail="존재하지 않는 이메일입니다.")
+        raise HTTPException(status_code=404, detail="존재하지 않는 유저입니다.")
     user_id, user_name, user_email, _ = user
     return schemas.LoginResponse(
         success=True,
@@ -157,8 +76,6 @@ def register(request: schemas.RegisterRequest, cnx=Depends(get_db_connection)):
             raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요")
         if not name:
             raise HTTPException(status_code=400, detail="이름을 입력해주세요")
-        if not cnx or not cnx.is_connected():
-            raise HTTPException(status_code=500, detail="DB 연결에 실패했습니다.")
         user_id = insert_user(email, password, name, cnx)
         return schemas.RegisterResponse(
             success=True,

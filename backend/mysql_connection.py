@@ -2,9 +2,35 @@ from typing import Any
 
 import mysql.connector
 import schemas
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, security, status
+from fastapi.security import HTTPAuthorizationCredentials
 from mysql.connector import errorcode
 from utils import get_password_hash, row_to_dict, rows_to_dict, verify_password
+
+
+def get_db_connection():
+    cnx = get_connection(config)
+    if not cnx or not cnx.is_connected():
+        raise HTTPException(status_code=500, detail="DB 연결 실패")
+    try:
+        yield cnx
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    cnx=Depends(get_db_connection),
+):
+    token = credentials.credentials
+
+    payload = decode_jwt_token(token)
+    _, user_email = extract_user_info_from_payload(payload)
+    user = select_user_by_email(user_email, cnx)
+    if not user:
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+    return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
 
 
 # database.py
