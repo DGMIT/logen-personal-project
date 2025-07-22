@@ -89,7 +89,8 @@ def list_todos(
     sort: Optional[str] = None,
     order: Optional[str] = None,
     page: int = 1,
-    limit: int = 10
+    limit: int = 10,
+    search: Optional[str] = None,
 ) -> Dict[str, Any]:
     url = f"{API_BASE_URL}/todos"
     headers = auth_headers()
@@ -104,6 +105,8 @@ def list_todos(
         params["sort"] = sort
     if order:
         params["order"] = order
+    if search:
+        params["search"] = search
     resp = requests.get(url, headers=headers, params=params)
     return resp.json()
 

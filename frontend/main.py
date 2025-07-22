@@ -462,10 +462,12 @@ class TodoListWidget(QWidget):
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
         self._filter = "all"
+        self._search = ""
         self.refresh()
 
-    def set_filter(self, filter_key):
+    def set_filter(self, filter_key, search_term=""):
         self._filter = filter_key
+        self._search = search_term
         self.refresh()
 
     def refresh(self):
@@ -482,6 +484,8 @@ class TodoListWidget(QWidget):
             params["done"] = False
         elif self._filter in ("업무", "개인", "학습"):
             params["category"] = self._filter
+        if self._search:
+            params["search"] = self._search
         resp = api_client.list_todos(**params)
         todos = resp.get('data', {}).get('todos', []) if resp.get('success') else []
         for todo in todos:
@@ -653,6 +657,18 @@ class TodoMainFrame(QWidget):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 검색 바 추가
+        search_layout = QHBoxLayout()
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("제목으로 검색...")
+        self.search_input.setFixedWidth(240)
+        self.search_input.returnPressed.connect(self.on_search)
+        search_btn = QPushButton("검색")
+        search_btn.clicked.connect(self.on_search)
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(search_btn)
+        search_layout.addStretch(1)
+        layout.addLayout(search_layout)
         # 필터 바 추가
         filter_layout = QHBoxLayout()
         filter_layout.setSpacing(8)
@@ -683,6 +699,7 @@ class TodoMainFrame(QWidget):
         self.setLayout(layout)
         self.setStyleSheet("background: #fff; border-radius: 8px;")
         self.current_filter = "all"
+        self.current_search = ""
         self.filter_group.buttonClicked.connect(self.on_filter_changed)
 
     def on_filter_changed(self, btn):
@@ -690,10 +707,14 @@ class TodoMainFrame(QWidget):
             if button is btn:
                 self.current_filter = key
                 break
-        self.todo_list.set_filter(self.current_filter)
+        self.todo_list.set_filter(self.current_filter, self.current_search)
+
+    def on_search(self):
+        self.current_search = self.search_input.text().strip()
+        self.todo_list.set_filter(self.current_filter, self.current_search)
 
     def refresh_with_current_filter(self):
-        self.todo_list.set_filter(self.current_filter)
+        self.todo_list.set_filter(self.current_filter, self.current_search)
 
 # 전체 배경 QSS
 class TodoMainPage(QWidget):

@@ -193,7 +193,7 @@ def add_todo_into_database(
     return inserted_id
 
 
-def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = None, category: Optional[str] = None):
+def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = None, category: Optional[str] = None, search: Optional[str] = None):
     with cnx.cursor(dictionary=True) as cursor:
         sql = "SELECT * FROM todo WHERE user_id = %s"
         params = [user_id]
@@ -203,6 +203,9 @@ def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = 
         if category is not None:
             sql += " AND category = %s"
             params.append(category)
+        if search is not None and search.strip() != "":
+            sql += " AND title LIKE %s"
+            params.append(f"%{search}%")
         cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
         if rows:

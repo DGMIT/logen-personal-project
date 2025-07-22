@@ -266,12 +266,13 @@ def add_todo(
 def get_todos(
     done: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     current_user: schemas.PublicUser = Depends(get_current_user),
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
     try:
         todos_raw = get_total_todos_from_datbase(
-            current_user.id, cnx, done=done, category=category
+            current_user.id, cnx, done=done, category=category, search=search
         ) or []
         todos = []
         for todo in todos_raw:
