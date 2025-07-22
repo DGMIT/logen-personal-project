@@ -393,30 +393,8 @@ class TodoItemWidget(QFrame):
         info_layout.addLayout(meta_layout)
         main_layout.addLayout(info_layout, stretch=1)
         self.setLayout(main_layout)
-        # 하단 버튼 영역(초기에는 숨김)
-        self.button_bar = QWidget()
-        btn_layout = QHBoxLayout()
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_layout.setSpacing(12)
-        self.btn_edit = QPushButton("수정")
-        self.btn_edit.setStyleSheet("background:#2563eb;color:white;border-radius:8px;padding:8px 28px;font-weight:bold;font-size:15px;")
-        self.btn_edit.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.btn_edit.clicked.connect(self.edit_todo)
-        self.btn_delete = QPushButton("삭제")
-        self.btn_delete.setStyleSheet("background:#ef4444;color:white;border-radius:8px;padding:8px 28px;font-weight:bold;font-size:15px;")
-        self.btn_delete.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.btn_delete.clicked.connect(self.delete_todo)
-        btn_layout.addWidget(self.btn_edit)
-        btn_layout.addWidget(self.btn_delete)
-        btn_layout.addStretch(1)
-        self.button_bar.setLayout(btn_layout)
-        self.button_bar.setVisible(False)
-        out_layout = QVBoxLayout(self)
-        out_layout.setContentsMargins(0, 0, 0, 0)
-        out_layout.setSpacing(0)
-        out_layout.addLayout(main_layout)
-        out_layout.addWidget(self.button_bar)
-        self.setLayout(out_layout)
+        # Remove button_bar and related logic
+        # self.button_bar = QWidget() ...
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
     def toggle_done(self, state):
@@ -425,10 +403,15 @@ class TodoItemWidget(QFrame):
     def toggle_done_btn(self):
         self.checkbox.setChecked(not self.checkbox.isChecked())
     def show_context_menu(self, pos: QPoint):
-        self.button_bar.setVisible(True)
+        menu = QMenu(self)
+        edit_action = menu.addAction("수정")
+        delete_action = menu.addAction("삭제")
+        action = menu.exec(self.mapToGlobal(pos))
+        if action == edit_action:
+            self.edit_todo_custom()
+        elif action == delete_action:
+            self.delete_todo()
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.button_bar.setVisible(False)
         super().mousePressEvent(event)
     def edit_todo(self):
         new_title, ok = QInputDialog.getText(self, "할일 수정", "새 제목:", text=self.todo.get('title', ''))
@@ -438,6 +421,15 @@ class TodoItemWidget(QFrame):
     def delete_todo(self):
         api_client.delete_todo(self.todo['id'])
         self.refresh_callback()
+
+    def edit_todo_custom(self):
+        # 부모 계층에서 TodoMainPage를 찾아 set_edit_mode 호출
+        parent = self.parent()
+        while parent is not None:
+            if isinstance(parent, TodoMainPage):
+                parent.set_edit_mode(self.todo)
+                break
+            parent = parent.parent()
 
 class TodoListWidget(QWidget):
     def __init__(self):
@@ -473,6 +465,8 @@ class TodoAddWidget(QWidget):
     def __init__(self, on_add_callback):
         super().__init__()
         self.on_add_callback = on_add_callback
+        self.edit_mode = False
+        self.edit_todo_id = None
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -502,12 +496,10 @@ class TodoAddWidget(QWidget):
                 background-color: white;
                 color: black;
             }
-
             QComboBox QListView::item:hover {
                 color: black; /* 호버 시 글씨 색 */
                 background-color: #e0e0e0; /* 호버 시 배경 */
             }
-
             QComboBox QListView::item:selected {
                 color: white; /* 선택된 항목 텍스트 */
                 background-color: #0078d7; /* 선택된 항목 배경 */
@@ -521,13 +513,53 @@ class TodoAddWidget(QWidget):
         self.due_input.setDate(QDate.currentDate())
         layout.addWidget(QLabel("마감일"))
         layout.addWidget(self.due_input)
-        # 추가 버튼
+        # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
         self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
-        self.add_btn.clicked.connect(self.add_todo)
+        self.add_btn.clicked.connect(self.on_btn_clicked)
         layout.addWidget(self.add_btn)
         layout.addStretch(1)
         self.setLayout(layout)
+
+    def on_btn_clicked(self):
+        if self.edit_mode:
+            self.update_todo()
+        else:
+            self.add_todo()
+
+    def set_edit_mode(self, todo):
+        self.edit_mode = True
+        self.edit_todo_id = todo.get("id")
+        self.title_input.setText(todo.get("title", ""))
+        self.desc_input.setText(todo.get("description", ""))
+        cat = todo.get("category", "기타")
+        prio = todo.get("priority", "보통")
+        duedate = todo.get("duedate", "")
+        idx_cat = self.category_input.findText(cat)
+        if idx_cat >= 0:
+            self.category_input.setCurrentIndex(idx_cat)
+        idx_prio = self.priority_input.findText(prio)
+        if idx_prio >= 0:
+            self.priority_input.setCurrentIndex(idx_prio)
+        if duedate:
+            try:
+                self.due_input.setDate(QDate.fromString(duedate, "yyyy-MM-dd"))
+            except Exception:
+                pass
+        self.add_btn.setText("할일 수정하기")
+        self.add_btn.setStyleSheet("background:#2563eb;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+
+    def reset_mode(self):
+        self.edit_mode = False
+        self.edit_todo_id = None
+        self.title_input.clear()
+        self.desc_input.clear()
+        self.category_input.setCurrentIndex(0)
+        self.priority_input.setCurrentIndex(0)
+        self.due_input.setDate(QDate.currentDate())
+        self.add_btn.setText("할일 추가")
+        self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+
     def add_todo(self):
         title = self.title_input.text().strip()
         desc = self.desc_input.toPlainText().strip()
@@ -540,17 +572,33 @@ class TodoAddWidget(QWidget):
         resp = api_client.create_todo(title, desc, category, duedate, priority)
         if resp.get("success"):
             QMessageBox.information(self, "추가 완료", "할일이 추가되었습니다.")
-            self.title_input.clear()
-            self.desc_input.clear()
-            self.category_input.setCurrentIndex(0)
-            self.priority_input.setCurrentIndex(0)
-            self.due_input.setDate(QDate.currentDate())
+            self.reset_mode()
             self.on_add_callback()
         else:
             msg = resp.get("message") or resp.get("detail") or "할일 추가 실패"
             if isinstance(msg, list):
                 msg = "\n".join(item.get("msg", str(item)) for item in msg)
             QMessageBox.warning(self, "추가 실패", msg)
+
+    def update_todo(self):
+        title = self.title_input.text().strip()
+        desc = self.desc_input.toPlainText().strip()
+        category = self.category_input.currentText()
+        priority = self.priority_input.currentText()
+        duedate = self.due_input.date().toString("yyyy-MM-dd")
+        if not title or not desc:
+            QMessageBox.warning(self, "입력 오류", "제목과 설명을 모두 입력하세요.")
+            return
+        resp = api_client.update_todo(self.edit_todo_id, title=title, description=desc, category=category, duedate=duedate, priority=priority)
+        if resp.get("success"):
+            QMessageBox.information(self, "수정 완료", "할일이 수정되었습니다.")
+            self.reset_mode()
+            self.on_add_callback()
+        else:
+            msg = resp.get("message") or resp.get("detail") or "할일 수정 실패"
+            if isinstance(msg, list):
+                msg = "\n".join(item.get("msg", str(item)) for item in msg)
+            QMessageBox.warning(self, "수정 실패", msg)
 
 class TodoSidebar(QWidget):
     def __init__(self, on_todo_added=None):
@@ -568,6 +616,9 @@ class TodoSidebar(QWidget):
         self.setLayout(layout)
         self.setFixedWidth(320)
         self.setStyleSheet("background: #f8fafc; border-radius: 8px;")
+
+    def set_edit_mode(self, todo):
+        self.add_widget.set_edit_mode(todo)
 
 class TodoMainFrame(QWidget):
     def __init__(self):
@@ -596,6 +647,9 @@ class TodoMainPage(QWidget):
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)
         self.setStyleSheet("background: #f6f8fb;")
+
+    def set_edit_mode(self, todo):
+        self.sidebar.set_edit_mode(todo)
 
 # MainWindow의 _main_content_widget을 TodoMainPage로 교체
 class MainWindow(QMainWindow):
