@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QFrame,
     QSizePolicy,
-    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea
+    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup
 )
 from PyQt6.QtCore import Qt, QPoint, QDate
 from PyQt6.QtGui import QFont, QCursor, QColor
@@ -404,6 +404,20 @@ class TodoItemWidget(QFrame):
         self.checkbox.setChecked(not self.checkbox.isChecked())
     def show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: white;
+                color: black; /* 기본 텍스트 색 */
+            }
+            QMenu::item:selected {
+                background-color: #0078d7;
+                color: white; /* 선택된 항목 텍스트 색 */
+            }
+            QMenu::item:hover {
+                background-color: #e0e0e0;
+                color: black; /* 호버 시 텍스트 색 */
+            }
+        """)
         edit_action = menu.addAction("수정")
         delete_action = menu.addAction("삭제")
         action = menu.exec(self.mapToGlobal(pos))
@@ -447,14 +461,28 @@ class TodoListWidget(QWidget):
         main_layout.setSpacing(0)
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
+        self._filter = "all"
         self.refresh()
+
+    def set_filter(self, filter_key):
+        self._filter = filter_key
+        self.refresh()
+
     def refresh(self):
         while self.layout.count():
             item = self.layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
-        resp = api_client.list_todos(limit=100)
+        # 필터링 로직
+        params = {"limit": 100}
+        if self._filter == "done":
+            params["done"] = True
+        elif self._filter == "not_done":
+            params["done"] = False
+        elif self._filter in ("업무", "개인", "학습"):
+            params["category"] = self._filter
+        resp = api_client.list_todos(**params)
         todos = resp.get('data', {}).get('todos', []) if resp.get('success') else []
         for todo in todos:
             item = TodoItemWidget(todo, self.refresh)
@@ -625,6 +653,28 @@ class TodoMainFrame(QWidget):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 필터 바 추가
+        filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(8)
+        self.filter_group = QButtonGroup(self)
+        self.filter_buttons = {}
+        filter_names = [
+            ("전체", "all"),
+            ("완료", "done"),
+            ("미완료", "not_done"),
+            ("업무", "업무"),
+            ("개인", "개인"),
+            ("학습", "학습"),
+        ]
+        for label, key in filter_names:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setStyleSheet("QPushButton {padding:6px 18px;border-radius:8px;} QPushButton:checked {background:#2563eb;color:white;}")
+            self.filter_group.addButton(btn)
+            self.filter_buttons[key] = btn
+            filter_layout.addWidget(btn)
+        self.filter_buttons["all"].setChecked(True)
+        layout.addLayout(filter_layout)
         title = QLabel("할일 목록")
         title.setStyleSheet("font-weight: bold; font-size: 18px;")
         layout.addWidget(title)
@@ -632,6 +682,18 @@ class TodoMainFrame(QWidget):
         layout.addWidget(self.todo_list)
         self.setLayout(layout)
         self.setStyleSheet("background: #fff; border-radius: 8px;")
+        self.current_filter = "all"
+        self.filter_group.buttonClicked.connect(self.on_filter_changed)
+
+    def on_filter_changed(self, btn):
+        for key, button in self.filter_buttons.items():
+            if button is btn:
+                self.current_filter = key
+                break
+        self.todo_list.set_filter(self.current_filter)
+
+    def refresh_with_current_filter(self):
+        self.todo_list.set_filter(self.current_filter)
 
 # 전체 배경 QSS
 class TodoMainPage(QWidget):
@@ -642,7 +704,7 @@ class TodoMainPage(QWidget):
         main_layout.setSpacing(16)
         # 할일 추가 시 목록 새로고침 콜백 연결
         self.main_frame = TodoMainFrame()
-        self.sidebar = TodoSidebar(on_todo_added=self.main_frame.todo_list.refresh)
+        self.sidebar = TodoSidebar(on_todo_added=self.main_frame.refresh_with_current_filter)
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)

@@ -1,4 +1,4 @@
-from typing import Any, Generator
+from typing import Any, Generator, Optional
 
 import mysql.connector
 import schemas
@@ -193,13 +193,20 @@ def add_todo_into_database(
     return inserted_id
 
 
-def get_total_todos_from_datbase(user_id: int, cnx: Any):
-    with cnx.cursor() as cursor:
+def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = None, category: Optional[str] = None):
+    with cnx.cursor(dictionary=True) as cursor:
         sql = "SELECT * FROM todo WHERE user_id = %s"
-        cursor.execute(sql, (user_id,))
+        params = [user_id]
+        if done is not None:
+            sql += " AND done = %s"
+            params.append(1 if done else 0)
+        if category is not None:
+            sql += " AND category = %s"
+            params.append(category)
+        cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
         if rows:
-            return rows_to_dict(cursor, rows)
+            return rows
 
 
 def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
