@@ -15,10 +15,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QFrame,
     QSizePolicy,
+    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QCursor
+from PyQt6.QtCore import Qt, QPoint, QDate
+from PyQt6.QtGui import QFont, QCursor, QColor
 import api_client
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
 class LoginWidget(QWidget):
     def __init__(self, switch_to_main, switch_to_register):
@@ -311,6 +313,161 @@ class RegisterWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
 
+class Badge(QLabel):
+    def __init__(self, text, color):
+        super().__init__(text)
+        self.setStyleSheet(f"background: {color}; color: white; border-radius: 12px; padding: 3px 14px; font-size: 13px; font-weight: bold; margin-right: 4px;")
+        self.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+
+class TodoItemWidget(QFrame):
+    CATEGORY_COLORS = {
+        "업무": "#2563eb",
+        "개인": "#6366f1",
+        "학습": "#06b6d4",
+        "기타": "#64748b",
+    }
+    PRIORITY_COLORS = {
+        "높음": "#ef4444",
+        "보통": "#f59e42",
+        "낮음": "#22c55e",
+    }
+    def __init__(self, todo, refresh_callback):
+        super().__init__()
+        self.todo = todo
+        self.refresh_callback = refresh_callback
+        self.setObjectName("TodoCard")
+        self.setStyleSheet("""
+            QFrame#TodoCard {
+                background: #fff;
+                border-radius: 18px;
+                border: 1.5px solid #e5e7eb;
+                padding: 20px 24px 14px 24px;
+                margin-bottom: 0px; /* 카드 간 여백 제거 */
+                font-family: 'Arial';
+            }
+            QFrame#TodoCard:hover {
+                border: 1.5px solid #2563eb;
+                background: #f3f6fd;
+            }
+        """)
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(18)
+        shadow.setOffset(0, 4)
+        shadow.setColor(QColor(0, 0, 0, 30))
+        self.setGraphicsEffect(shadow)
+        self.setMinimumHeight(80)
+        self.setMaximumHeight(120)
+        self.setFrameShadow(QFrame.Shadow.Raised)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(18)
+        # 체크박스
+        self.checkbox = QCheckBox()
+        self.checkbox.setChecked(todo.get("done", False))
+        self.checkbox.stateChanged.connect(self.toggle_done)
+        self.checkbox.setStyleSheet("QCheckBox {margin-right: 10px;}")
+        main_layout.addWidget(self.checkbox, alignment=Qt.AlignmentFlag.AlignTop)
+        # 중앙 정보
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(6)
+        # 제목
+        title = QLabel(f"{todo.get('title')}")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 2px;")
+        info_layout.addWidget(title)
+        # 메타정보(카테고리, 우선순위, 마감)
+        meta_layout = QHBoxLayout()
+        meta_layout.setSpacing(10)
+        cat = todo.get('category', '기타')
+        cat_badge = Badge(cat, self.CATEGORY_COLORS.get(cat, "#64748b"))
+        meta_layout.addWidget(cat_badge)
+        prio = todo.get('priority', '보통')
+        prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
+        meta_layout.addWidget(prio_badge)
+        duedate = todo.get('duedate', '')
+        date_label = QLabel(f"🗓 {duedate}")
+        date_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: bold; margin-left: 8px;")
+        meta_layout.addWidget(date_label)
+        meta_layout.addStretch(1)
+        info_layout.addLayout(meta_layout)
+        main_layout.addLayout(info_layout, stretch=1)
+        self.setLayout(main_layout)
+        # 하단 버튼 영역(초기에는 숨김)
+        self.button_bar = QWidget()
+        btn_layout = QHBoxLayout()
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(12)
+        self.btn_edit = QPushButton("수정")
+        self.btn_edit.setStyleSheet("background:#2563eb;color:white;border-radius:8px;padding:8px 28px;font-weight:bold;font-size:15px;")
+        self.btn_edit.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.btn_edit.clicked.connect(self.edit_todo)
+        self.btn_delete = QPushButton("삭제")
+        self.btn_delete.setStyleSheet("background:#ef4444;color:white;border-radius:8px;padding:8px 28px;font-weight:bold;font-size:15px;")
+        self.btn_delete.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.btn_delete.clicked.connect(self.delete_todo)
+        btn_layout.addWidget(self.btn_edit)
+        btn_layout.addWidget(self.btn_delete)
+        btn_layout.addStretch(1)
+        self.button_bar.setLayout(btn_layout)
+        self.button_bar.setVisible(False)
+        out_layout = QVBoxLayout(self)
+        out_layout.setContentsMargins(0, 0, 0, 0)
+        out_layout.setSpacing(0)
+        out_layout.addLayout(main_layout)
+        out_layout.addWidget(self.button_bar)
+        self.setLayout(out_layout)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
+    def toggle_done(self, state):
+        api_client.update_todo(self.todo['id'], done=bool(state))
+        self.refresh_callback()
+    def toggle_done_btn(self):
+        self.checkbox.setChecked(not self.checkbox.isChecked())
+    def show_context_menu(self, pos: QPoint):
+        self.button_bar.setVisible(True)
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.button_bar.setVisible(False)
+        super().mousePressEvent(event)
+    def edit_todo(self):
+        new_title, ok = QInputDialog.getText(self, "할일 수정", "새 제목:", text=self.todo.get('title', ''))
+        if ok and new_title.strip():
+            api_client.update_todo(self.todo['id'], title=new_title.strip())
+            self.refresh_callback()
+    def delete_todo(self):
+        api_client.delete_todo(self.todo['id'])
+        self.refresh_callback()
+
+class TodoListWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea {border: none; background: #f8fafc;} QScrollBar:vertical {width: 12px; background: #e5e7eb; border-radius: 6px;} QScrollBar::handle:vertical {background: #2563eb; border-radius: 6px;}")
+        content = QWidget()
+        self.layout = QVBoxLayout(content)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)  # 카드 간 여백 제거
+        scroll.setWidget(content)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 스크롤 영역 여백 제거
+        main_layout.setSpacing(0)
+        main_layout.addWidget(scroll)
+        self.setLayout(main_layout)
+        self.refresh()
+    def refresh(self):
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        resp = api_client.list_todos(limit=100)
+        todos = resp.get('data', {}).get('todos', []) if resp.get('success') else []
+        for todo in todos:
+            item = TodoItemWidget(todo, self.refresh)
+            self.layout.addWidget(item)
+        self.layout.addStretch(1)
+
 class TodoSidebar(QWidget):
     def __init__(self):
         super().__init__()
@@ -330,14 +487,15 @@ class TodoMainFrame(QWidget):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # 예시 타이틀
-        title = QLabel("메인 프레임")
+        title = QLabel("할일 목록")
         title.setStyleSheet("font-weight: bold; font-size: 18px;")
         layout.addWidget(title)
-        layout.addStretch(1)
+        self.todo_list = TodoListWidget()
+        layout.addWidget(self.todo_list)
         self.setLayout(layout)
         self.setStyleSheet("background: #fff; border-radius: 8px;")
 
+# 전체 배경 QSS
 class TodoMainPage(QWidget):
     def __init__(self):
         super().__init__()
