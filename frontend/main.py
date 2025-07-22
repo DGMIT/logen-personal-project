@@ -346,8 +346,9 @@ class TodoItemWidget(QFrame):
                 font-family: 'Arial';
             }
             QFrame#TodoCard:hover {
-                border: 1.5px solid #2563eb;
+                border: 1.5px solid black;
                 background: #f3f6fd;
+                color: black;
             }
         """)
         shadow = QGraphicsDropShadowEffect(self)
@@ -496,6 +497,24 @@ class TodoAddWidget(QWidget):
         self.priority_input.addItems(["높음", "보통", "낮음"])
         layout.addWidget(QLabel("우선순위"))
         layout.addWidget(self.priority_input)
+        style = """
+            QComboBox {
+                background-color: white;
+                color: black;
+            }
+
+            QComboBox QListView::item:hover {
+                color: black; /* 호버 시 글씨 색 */
+                background-color: #e0e0e0; /* 호버 시 배경 */
+            }
+
+            QComboBox QListView::item:selected {
+                color: white; /* 선택된 항목 텍스트 */
+                background-color: #0078d7; /* 선택된 항목 배경 */
+            }
+        """
+        self.category_input.setStyleSheet(style)
+        self.priority_input.setStyleSheet(style)
         # 마감일
         self.due_input = QDateEdit()
         self.due_input.setCalendarPopup(True)
