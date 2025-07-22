@@ -17,6 +17,7 @@ frontend/.env
 frontend/.vscode/
 frontend/.idea/
 frontend/__pypackages__/
+frontend/.token
 
 # Docker
 docker-compose.override.yml

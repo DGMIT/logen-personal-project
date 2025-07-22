@@ -311,6 +311,47 @@ class RegisterWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
 
+class TodoSidebar(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 예시 타이틀
+        title = QLabel("사이드바")
+        title.setStyleSheet("font-weight: bold; font-size: 18px;")
+        layout.addWidget(title)
+        layout.addStretch(1)
+        self.setLayout(layout)
+        self.setFixedWidth(320)
+        self.setStyleSheet("background: #f8fafc; border-radius: 8px;")
+
+class TodoMainFrame(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 예시 타이틀
+        title = QLabel("메인 프레임")
+        title.setStyleSheet("font-weight: bold; font-size: 18px;")
+        layout.addWidget(title)
+        layout.addStretch(1)
+        self.setLayout(layout)
+        self.setStyleSheet("background: #fff; border-radius: 8px;")
+
+class TodoMainPage(QWidget):
+    def __init__(self):
+        super().__init__()
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(16)
+        self.sidebar = TodoSidebar()
+        self.main_frame = TodoMainFrame()
+        main_layout.addWidget(self.sidebar)
+        main_layout.addWidget(self.main_frame, stretch=1)
+        self.setLayout(main_layout)
+        self.setStyleSheet("background: #f6f8fb;")
+
+# MainWindow의 _main_content_widget을 TodoMainPage로 교체
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -323,7 +364,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.register_widget)   # index 1
         self.stack.addWidget(self.main_widget)       # index 2
         self.setCentralWidget(self.stack)
-        self.resize(900, 700)
+        self.resize(1200, 800)
         self.show_login()
 
     def show_login(self):
@@ -336,15 +377,7 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(2)
 
     def _main_content_widget(self):
-        w = QWidget()
-        layout = QVBoxLayout()
-        label = QLabel("메인 화면 (로그인 성공)")
-        btn_logout = QPushButton("로그아웃")
-        btn_logout.clicked.connect(self.logout)
-        layout.addWidget(label)
-        layout.addWidget(btn_logout)
-        w.setLayout(layout)
-        return w
+        return TodoMainPage()
 
     def logout(self):
         api_client.logout()

@@ -212,7 +212,7 @@ docker-compose up -d
 * 아래 명령어로 FastAPI 서버를 실행합니다.
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --port 9000
 ```
 
 * 서버가 정상적으로 시작되면 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) 에 접속하여 Swagger UI를 확인할 수 있습니다.
