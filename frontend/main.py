@@ -468,11 +468,79 @@ class TodoListWidget(QWidget):
             self.layout.addWidget(item)
         self.layout.addStretch(1)
 
+class TodoAddWidget(QWidget):
+    def __init__(self, on_add_callback):
+        super().__init__()
+        self.on_add_callback = on_add_callback
+        layout = QVBoxLayout()
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        # 제목
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("할일 제목을 입력하세요")
+        layout.addWidget(QLabel("제목"))
+        layout.addWidget(self.title_input)
+        # 설명
+        self.desc_input = QTextEdit()
+        self.desc_input.setPlaceholderText("상세 설명을 입력하세요")
+        self.desc_input.setFixedHeight(48)
+        layout.addWidget(QLabel("설명"))
+        layout.addWidget(self.desc_input)
+        # 카테고리
+        self.category_input = QComboBox()
+        self.category_input.addItems(["업무", "개인", "학습", "기타"])
+        layout.addWidget(QLabel("카테고리"))
+        layout.addWidget(self.category_input)
+        # 우선순위
+        self.priority_input = QComboBox()
+        self.priority_input.addItems(["높음", "보통", "낮음"])
+        layout.addWidget(QLabel("우선순위"))
+        layout.addWidget(self.priority_input)
+        # 마감일
+        self.due_input = QDateEdit()
+        self.due_input.setCalendarPopup(True)
+        self.due_input.setDate(QDate.currentDate())
+        layout.addWidget(QLabel("마감일"))
+        layout.addWidget(self.due_input)
+        # 추가 버튼
+        self.add_btn = QPushButton("할일 추가")
+        self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.add_btn.clicked.connect(self.add_todo)
+        layout.addWidget(self.add_btn)
+        layout.addStretch(1)
+        self.setLayout(layout)
+    def add_todo(self):
+        title = self.title_input.text().strip()
+        desc = self.desc_input.toPlainText().strip()
+        category = self.category_input.currentText()
+        priority = self.priority_input.currentText()
+        duedate = self.due_input.date().toString("yyyy-MM-dd")
+        if not title or not desc:
+            QMessageBox.warning(self, "입력 오류", "제목과 설명을 모두 입력하세요.")
+            return
+        resp = api_client.create_todo(title, desc, category, duedate, priority)
+        if resp.get("success"):
+            QMessageBox.information(self, "추가 완료", "할일이 추가되었습니다.")
+            self.title_input.clear()
+            self.desc_input.clear()
+            self.category_input.setCurrentIndex(0)
+            self.priority_input.setCurrentIndex(0)
+            self.due_input.setDate(QDate.currentDate())
+            self.on_add_callback()
+        else:
+            msg = resp.get("message") or resp.get("detail") or "할일 추가 실패"
+            if isinstance(msg, list):
+                msg = "\n".join(item.get("msg", str(item)) for item in msg)
+            QMessageBox.warning(self, "추가 실패", msg)
+
 class TodoSidebar(QWidget):
-    def __init__(self):
+    def __init__(self, on_todo_added=None):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # 할일 추가 컴포넌트
+        self.add_widget = TodoAddWidget(on_todo_added)
+        layout.addWidget(self.add_widget)
         # 예시 타이틀
         title = QLabel("사이드바")
         title.setStyleSheet("font-weight: bold; font-size: 18px;")
@@ -502,8 +570,9 @@ class TodoMainPage(QWidget):
         main_layout = QHBoxLayout()
         main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(16)
-        self.sidebar = TodoSidebar()
+        # 할일 추가 시 목록 새로고침 콜백 연결
         self.main_frame = TodoMainFrame()
+        self.sidebar = TodoSidebar(on_todo_added=self.main_frame.todo_list.refresh)
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)
