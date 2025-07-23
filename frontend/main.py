@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QFrame,
     QSizePolicy,
-    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup
+    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup, QProgressBar
 )
 from PyQt6.QtCore import Qt, QPoint, QDate
 from PyQt6.QtGui import QFont, QCursor, QColor
@@ -398,8 +398,10 @@ class TodoItemWidget(QFrame):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
     def toggle_done(self, state):
+        # API 응답이 완료된 후에만 새로고침 (동기라면 바로, 비동기라면 QTimer로 약간 딜레이)
         api_client.update_todo(self.todo['id'], done=bool(state))
-        self.refresh_callback()
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(150, self.refresh_callback)  # 150ms 후 새로고침
     def toggle_done_btn(self):
         self.checkbox.setChecked(not self.checkbox.isChecked())
     def show_context_menu(self, pos: QPoint):
@@ -446,8 +448,9 @@ class TodoItemWidget(QFrame):
             parent = parent.parent()
 
 class TodoListWidget(QWidget):
-    def __init__(self):
+    def __init__(self, stats_callback=None):
         super().__init__()
+        self.stats_callback = stats_callback
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("QScrollArea {border: none; background: #f8fafc;} QScrollBar:vertical {width: 12px; background: #e5e7eb; border-radius: 6px;} QScrollBar::handle:vertical {background: #2563eb; border-radius: 6px;}")
@@ -492,6 +495,9 @@ class TodoListWidget(QWidget):
             item = TodoItemWidget(todo, self.refresh)
             self.layout.addWidget(item)
         self.layout.addStretch(1)
+        # 현황 콜백
+        if self.stats_callback is not None:
+            self.stats_callback(todos)
 
 class TodoAddWidget(QWidget):
     def __init__(self, on_add_callback):
@@ -632,6 +638,62 @@ class TodoAddWidget(QWidget):
                 msg = "\n".join(item.get("msg", str(item)) for item in msg)
             QMessageBox.warning(self, "수정 실패", msg)
 
+class TodoStatsWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+        layout.setContentsMargins(0, 12, 0, 0)
+        title = QLabel("📊 진행 현황")
+        title.setStyleSheet("font-weight: bold; font-size: 16px; margin-bottom: 8px;")
+        layout.addWidget(title)
+        # 총 할일
+        stat_total = QHBoxLayout()
+        icon_total = QLabel("<img src='https://img.icons8.com/ios-filled/20/000000/todo-list.png'/>")
+        stat_total.addWidget(icon_total)
+        self.total_label = QLabel("0")
+        self.total_label.setStyleSheet("color:#2563eb;font-size:22px;font-weight:bold;")
+        stat_total.addWidget(self.total_label)
+        stat_total.addWidget(QLabel("총 할일"))
+        stat_total.addStretch(1)
+        layout.addLayout(stat_total)
+        # 완료
+        stat_done = QHBoxLayout()
+        icon_done = QLabel("<img src='https://img.icons8.com/ios-filled/20/22c55e/checked-checkbox.png'/>")
+        stat_done.addWidget(icon_done)
+        self.done_label = QLabel("0")
+        self.done_label.setStyleSheet("color:#22c55e;font-size:22px;font-weight:bold;")
+        stat_done.addWidget(self.done_label)
+        stat_done.addWidget(QLabel("완료"))
+        stat_done.addStretch(1)
+        layout.addLayout(stat_done)
+        # 대기
+        stat_wait = QHBoxLayout()
+        icon_wait = QLabel("<img src='https://img.icons8.com/ios-filled/20/f59e42/hourglass.png'/>")
+        stat_wait.addWidget(icon_wait)
+        self.wait_label = QLabel("0")
+        self.wait_label.setStyleSheet("color:#f59e42;font-size:22px;font-weight:bold;")
+        stat_wait.addWidget(self.wait_label)
+        stat_wait.addWidget(QLabel("대기"))
+        stat_wait.addStretch(1)
+        layout.addLayout(stat_wait)
+        # 프로그래스바
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setFixedHeight(18)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setStyleSheet("QProgressBar {border-radius: 8px; background: #e5e7eb;} QProgressBar::chunk {background: #2563eb; border-radius: 8px;}")
+        layout.addWidget(self.progress_bar)
+        self.setLayout(layout)
+        self.update_stats(0, 0, 0)
+
+    def update_stats(self, total, done, wait):
+        self.total_label.setText(str(total))
+        self.done_label.setText(str(done))
+        self.wait_label.setText(str(wait))
+        percent = int((done / total) * 100) if total > 0 else 0
+        self.progress_bar.setValue(percent)
+        self.progress_bar.setFormat(f"{percent}% 완료")
+
 class TodoSidebar(QWidget):
     def __init__(self, on_todo_added=None):
         super().__init__()
@@ -640,10 +702,13 @@ class TodoSidebar(QWidget):
         # 할일 추가 컴포넌트
         self.add_widget = TodoAddWidget(on_todo_added)
         layout.addWidget(self.add_widget)
-        # 예시 타이틀
-        title = QLabel("사이드바")
-        title.setStyleSheet("font-weight: bold; font-size: 18px;")
-        layout.addWidget(title)
+        # 진행 현황 통계
+        self.stats_widget = TodoStatsWidget()
+        layout.addWidget(self.stats_widget)
+        # 예시 타이틀(삭제)
+        # title = QLabel("사이드바")
+        # title.setStyleSheet("font-weight: bold; font-size: 18px;")
+        # layout.addWidget(title)
         layout.addStretch(1)
         self.setLayout(layout)
         self.setFixedWidth(320)
@@ -652,12 +717,15 @@ class TodoSidebar(QWidget):
     def set_edit_mode(self, todo):
         self.add_widget.set_edit_mode(todo)
 
+    def update_stats(self, total, done, wait):
+        self.stats_widget.update_stats(total, done, wait)
+
 class TodoMainFrame(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # 검색 바 추가
+        # --- 검색/필터 바 ---
         search_layout = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("제목으로 검색...")
@@ -669,7 +737,6 @@ class TodoMainFrame(QWidget):
         search_layout.addWidget(search_btn)
         search_layout.addStretch(1)
         layout.addLayout(search_layout)
-        # 필터 바 추가
         filter_layout = QHBoxLayout()
         filter_layout.setSpacing(8)
         self.filter_group = QButtonGroup(self)
@@ -694,7 +761,7 @@ class TodoMainFrame(QWidget):
         title = QLabel("할일 목록")
         title.setStyleSheet("font-weight: bold; font-size: 18px;")
         layout.addWidget(title)
-        self.todo_list = TodoListWidget()
+        self.todo_list = TodoListWidget(self.update_stats_from_list)
         layout.addWidget(self.todo_list)
         self.setLayout(layout)
         self.setStyleSheet("background: #fff; border-radius: 8px;")
@@ -715,6 +782,18 @@ class TodoMainFrame(QWidget):
 
     def refresh_with_current_filter(self):
         self.todo_list.set_filter(self.current_filter, self.current_search)
+
+    def update_stats_from_list(self, todos):
+        total = len(todos)
+        done = sum(1 for t in todos if t.get('done'))
+        wait = total - done
+        # TodoSidebar 인스턴스 찾아서 update_stats 호출
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'sidebar'):
+                parent.sidebar.update_stats(total, done, wait)
+                break
+            parent = parent.parent()
 
 # 전체 배경 QSS
 class TodoMainPage(QWidget):

@@ -382,7 +382,8 @@ def modify_todo(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="마감일이 공백입니다.",
             )
-        if todo.done is not None:
+        # done 필드가 있으면 타입만 체크 (boolean이 아니면 에러)
+        if todo.done is not None and not isinstance(todo.done, bool):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="done 값은 boolean이어야 합니다.",
