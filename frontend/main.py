@@ -507,9 +507,16 @@ class TodoListWidget(QWidget):
         priority_order = {"높음": 1, "보통": 2, "낮음": 3}
 
         sorted_todos = sorted(todos, key=lambda x: priority_order[x["priority"]])
-        for todo in sorted_todos:
-            item = TodoItemWidget(todo, self.refresh)
-            self.layout.addWidget(item)
+        if not sorted_todos:
+            empty_label = QLabel("<div style='font-size:40px;text-align:center;'>📋</div><div>할일이 없습니다!<br>새로운 할일을 추가해보세요.</div>")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("color: #888; font-size: 18px; margin: 40px 0;")
+            empty_label.setTextFormat(Qt.TextFormat.RichText)
+            self.layout.addWidget(empty_label)
+        else:
+            for todo in sorted_todos:
+                item = TodoItemWidget(todo, self.refresh)
+                self.layout.addWidget(item)
         self.layout.addStretch(1)
         # 현황 콜백
         if self.stats_callback is not None:
@@ -575,7 +582,18 @@ class TodoAddWidget(QWidget):
         style = """
             QComboBox {
                 border: 1px solid #e5e7eb;
-                border-radius: 8px;
+                border-radius: 12px;
+                padding: 3px 14px;
+                background-color: white;
+                color: black;
+            }
+            QComboBox QListView::item:hover {
+                color: white;
+                background-color: #2563eb;
+            }
+            QComboBox QListView::item:selected {
+                color: white;
+                background-color: #0078d7;
             }
         """
         self.category_input.setStyleSheet(style)
@@ -589,7 +607,18 @@ class TodoAddWidget(QWidget):
         style = """
             QComboBox {
                 border: 1px solid #e5e7eb;
-                border-radius: 8px;
+                border-radius: 12px;
+                padding: 3px 14px;
+                background-color: white;
+                color: black;
+            }
+            QComboBox QListView::item:hover {
+                color: white;
+                background-color: #2563eb;
+            }
+            QComboBox QListView::item:selected {
+                color: white;
+                background-color: #0078d7;
             }
         """
         self.priority_input.setStyleSheet(style)
@@ -599,6 +628,16 @@ class TodoAddWidget(QWidget):
         self.due_input = QDateEdit()
         self.due_input.setCalendarPopup(True)
         self.due_input.setDate(QDate.currentDate())
+        style = """
+            QDateEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 3px 14px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.due_input.setStyleSheet(style)
         layout.addWidget(self.due_input)
         # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
