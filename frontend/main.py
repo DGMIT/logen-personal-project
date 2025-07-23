@@ -791,11 +791,11 @@ class TodoSidebar(QFrame):
         layout.addWidget(self.stats_widget)
         # 로그아웃/탈퇴 버튼
         self.logout_btn = QPushButton("로그아웃")
-        self.logout_btn.setStyleSheet("background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:16px;")
+        self.logout_btn.setStyleSheet("background:#e5e7eb;color:gray;font-weight:bold; padding:12px 0;font-size:15px;margin-top:16px;")
         self.logout_btn.clicked.connect(self.show_logout_dialog)
         layout.addWidget(self.logout_btn)
         self.withdraw_btn = QPushButton("회원탈퇴")
-        self.withdraw_btn.setStyleSheet("background:#fff0f0;color:#e74c3c;border:2px solid #e74c3c;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:8px;")
+        self.withdraw_btn.setStyleSheet("background:#e74c3c;color:#fff0f0;font-weight:bold; padding:12px 0; font-size:15px;margin-top:8px;")
         self.withdraw_btn.clicked.connect(self.show_withdraw_dialog)
         layout.addWidget(self.withdraw_btn)
         layout.addStretch(1)
