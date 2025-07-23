@@ -526,6 +526,14 @@ class TodoAddWidget(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.title_label = QLabel("새 할일 추가")
+        layout.addWidget(self.title_label)
+        style = """
+            QLabel {
+                font-size: 18px;
+            }
+        """
+        self.title_label.setStyleSheet(style)
         # 제목
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("할일 제목을 입력하세요")
