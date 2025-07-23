@@ -524,19 +524,21 @@ class TodoAddWidget(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
+        # 상단: 새 할일 추가 + * 필수 입력사항 안내
+        top_layout = QHBoxLayout()
         self.title_label = QLabel("새 할일 추가")
-        layout.addWidget(self.title_label)
-        style = """
-            QLabel {
-                font-size: 18px;
-            }
-        """
-        self.title_label.setStyleSheet(style)
+        self.title_label.setStyleSheet("font-size: 18px;")
+        top_layout.addWidget(self.title_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        required_label = QLabel('<span style="color:#e74c3c;font-size:15px;font-weight:bold;">*</span> <span style="color:#888;font-size:13px;">필수 입력사항</span>')
+        required_label.setTextFormat(Qt.TextFormat.RichText)
+        top_layout.addStretch(1)
+        top_layout.addWidget(required_label, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(top_layout)
         # 제목
+        title_label = QLabel('<span>제목 <span style="color:#e74c3c">*</span></span>')
+        title_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(title_label)
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("할일 제목을 입력하세요")
-        layout.addWidget(QLabel("제목"))
-        layout.addWidget(self.title_input)
         style = """
             QLineEdit {
                 border: 1px solid #e5e7eb;
@@ -547,12 +549,12 @@ class TodoAddWidget(QWidget):
             }
         """
         self.title_input.setStyleSheet(style)
+        layout.addWidget(self.title_input)
         # 설명
+        desc_label = QLabel('<span>설명 <span style="color:#e74c3c">*</span></span>')
+        desc_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(desc_label)
         self.desc_input = QTextEdit()
-        self.desc_input.setPlaceholderText("상세 설명을 입력하세요")
-        self.desc_input.setFixedHeight(48)
-        layout.addWidget(QLabel("설명"))
-        layout.addWidget(self.desc_input)
         style = """
             QTextEdit {
                 border: 1px solid #e5e7eb;
@@ -563,55 +565,41 @@ class TodoAddWidget(QWidget):
             }
         """
         self.desc_input.setStyleSheet(style)
+        layout.addWidget(self.desc_input)
         # 카테고리
+        cat_label = QLabel('<span>카테고리 <span style="color:#e74c3c">*</span></span>')
+        cat_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(cat_label)
         self.category_input = QComboBox()
         self.category_input.addItems(["업무", "개인", "학습", "기타"])
-        layout.addWidget(QLabel("카테고리"))
-        layout.addWidget(self.category_input)
         style = """
             QComboBox {
                 border: 1px solid #e5e7eb;
                 border-radius: 8px;
-                padding: 4px 6px;
             }
         """
         self.category_input.setStyleSheet(style)
+        layout.addWidget(self.category_input)
         # 우선순위
+        prio_label = QLabel('<span>우선순위 <span style="color:#e74c3c">*</span></span>')
+        prio_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(prio_label)
         self.priority_input = QComboBox()
         self.priority_input.addItems(["높음", "보통", "낮음"])
-        layout.addWidget(QLabel("우선순위"))
-        layout.addWidget(self.priority_input)
         style = """
             QComboBox {
-                background-color: white;
-                color: black;
                 border: 1px solid #e5e7eb;
                 border-radius: 8px;
-                padding: 4px 6px;
-            }
-            QComboBox QListView::item:hover {
-                color: black; /* 호버 시 글씨 색 */
-                background-color: #e0e0e0; /* 호버 시 배경 */
-            }
-            QComboBox QListView::item:selected {
-                color: white; /* 선택된 항목 텍스트 */
-                background-color: #0078d7; /* 선택된 항목 배경 */
             }
         """
         self.priority_input.setStyleSheet(style)
+        layout.addWidget(self.priority_input)
         # 마감일
+        layout.addWidget(QLabel("마감일"))
         self.due_input = QDateEdit()
         self.due_input.setCalendarPopup(True)
         self.due_input.setDate(QDate.currentDate())
-        layout.addWidget(QLabel("마감일"))
         layout.addWidget(self.due_input)
-        style = """
-            QDateEdit {
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-            }
-        """
-        self.due_input.setStyleSheet(style)
         # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
         self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
