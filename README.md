@@ -21,7 +21,6 @@
 
 - 회원가입, 로그인, 로그아웃
 - bcrypt 비밀번호 해싱, JWT 기반 인증 토큰 관리
-- 자동 로그인, 사용자 정보 조회 기능
 
 ### 3.2 할일 관리 (CRUD)
 
@@ -34,7 +33,7 @@
 
 - 4가지 카테고리: 업무, 개인, 학습, 기타
 - 3단계 우선순위: 높음(🔴), 보통(🟠), 낮음(🟢)
-- 스마트 정렬: 우선순위 > 마감일 > 생성일
+- 자동 정렬: 우선순위기준
 
 ### 3.4 검색 및 필터링
 
@@ -56,7 +55,6 @@
 | API | FastAPI (v0.104.1) | 비동기 지원, 타이핑 기반의 현대적 Python 웹 프레임워크 |
 | 자동화 | Playwright (v1.42.0) | 브라우저 자동화, E2E 테스트 및 크롤링 도구 |
 | 컨테이너화 | Docker | 애플리케이션 컨테이너 빌드, 배포, 실행 환경 |
-| DB 스키마 관리 | Flyway | 버전 기반 데이터베이스 마이그레이션 관리 |
 | 데이터베이스 | MariaDB | 메인 관계형 데이터베이스 관리 시스템 |
 
 
@@ -66,31 +64,21 @@
 
 ```
 ├── README.md
-├── .gitignore
-├── docker-compose.yml               # Docker로 DB 실행용
 │
 ├── backend/                         # FastAPI 백엔드
-│   ├── main.py                     # 🚀 여기서 시작! FastAPI 앱
-│   ├── database.py                 # DB 연결 코드
-│   ├── models.py                   # 사용자, 할일 데이터 구조
-│   ├── auth.py                     # 로그인 관련 함수들
+│   ├── main.py                     # 🚀 FastAPI 앱 시작점
+│   ├── config.py                   # 환경설정 및 상수 관리
+│   ├── docker-compose.yml          # Docker로 DB 실행용
+│   ├── init_db.sql                 # DB 초기화 SQL 스크립트
+│   ├── mysql_connection.py         # MariaDB 연결 코드
 │   ├── requirements.txt            # 필요한 라이브러리 목록
-│   └── .env                        # DB 비밀번호 등 (git에 안올림)
+│   ├── schemas.py                  # Pydantic 데이터 모델
+│   └── utils.py                    # 유틸리티 함수 모음
 │
-├── frontend/                        # PyQt6 데스크톱 앱
+├── frontend/                       # PyQt6 데스크톱 앱
 │   ├── main.py                     # 🎯 앱 시작점
-│   ├── login_window.py             # 로그인 창
-│   ├── main_window.py              # 메인 창 (할일 목록)
-│   ├── add_task_dialog.py          # 할일 추가 창
 │   ├── api_client.py               # 백엔드와 통신하는 코드
 │   └── requirements.txt            # PyQt6 등 필요한 것들
-│
-├── database/                        # 데이터베이스 파일들
-│   ├── setup.sql                   # 테이블 만드는 SQL
-│   └── sample_data.sql             # 테스트용 데이터
-│
-└── docs/                           # 나중에 문서 정리용
-    └── api_test.md                 # API 테스트 방법 메모
 ```
 
 ## 6. 주요 화면 구성안
@@ -212,15 +200,24 @@ docker-compose up -d
 * 아래 명령어로 FastAPI 서버를 실행합니다.
 
 ```bash
-uvicorn main:app --reload --port 9000
+uvicorn main:app --reload
 ```
-
-* 서버가 정상적으로 시작되면 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) 에 접속하여 Swagger UI를 확인할 수 있습니다.
 
 ### 4. 주의 사항
 
 * DB 비밀번호, 데이터베이스명 등 환경변수가 `.env` 파일과 `docker-compose.yml`의 환경 변수 설정이 일치하는지 확인하세요.
 * 기존에 데이터가 있으면 `docker-compose down -v`로 데이터 볼륨을 삭제 후 재실행해야 초기화 스크립트가 실행됩니다.
 
-- http://127.0.0.1:8000/docs를 접속하여 스웨거가 나오는지 확인한다
-### 프론트엔드
+## 프론트엔드
+### 1. 프론트엔드 파일로 이동합니다.
+```
+cd frontend
+```
+### 2. 가상환경 생성 및 라이브러리 설치
+- frontend root에서 python3 -m venv .venv를 실행하여 가상환경을 설치합니다.
+- source .venv/bin/activate 를 입력하여 가상환경을 활성화 시킵니다.
+- pip install -r requirements.txt 를 입력하여 라이브러리를 설치합니다.
+### 3. 프론트엔드 파일을 실행시킵니다.
+```
+python main.py
+```
