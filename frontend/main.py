@@ -389,15 +389,12 @@ class TodoItemWidget(QFrame):
         title = QLabel(f"{todo.get('title')}")
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 2px;")
         info_layout.addWidget(title)
-        # 메타정보(카테고리, 우선순위, 마감)
+        # 메타정보(카테고리, 마감)
         meta_layout = QHBoxLayout()
         meta_layout.setSpacing(10)
         cat = todo.get('category', '기타')
         cat_badge = Badge(cat, self.CATEGORY_COLORS.get(cat, "#64748b"))
         meta_layout.addWidget(cat_badge)
-        prio = todo.get('priority', '보통')
-        prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
-        meta_layout.addWidget(prio_badge)
         duedate = todo.get('duedate', '')
         date_label = QLabel(f"🗓 {duedate}")
         date_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: bold; margin-left: 8px;")
@@ -405,6 +402,10 @@ class TodoItemWidget(QFrame):
         meta_layout.addStretch(1)
         info_layout.addLayout(meta_layout)
         main_layout.addLayout(info_layout, stretch=1)
+        # 우선순위 배지 오른쪽 끝
+        prio = todo.get('priority', '보통')
+        prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
+        main_layout.addWidget(prio_badge, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.setLayout(main_layout)
         # Remove button_bar and related logic
         # self.button_bar = QWidget() ...
@@ -1012,9 +1013,36 @@ class LogoutDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: #f6f8fb;
+                color: #222;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+                margin-right: 8px;
+            }
+            QPushButton:hover {
+                background: #e5e7eb;
+            }
+        """)
         btn_ok = QPushButton("로그아웃")
-        btn_ok.setStyleSheet("background:#222;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_ok.setStyleSheet("""
+            QPushButton {
+                background: #222;
+                color: white;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background: #111;
+            }
+        """)
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
         btns.accepted.connect(self.accept)
@@ -1079,9 +1107,36 @@ class WithdrawDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: #f6f8fb;
+                color: #222;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+                margin-right: 8px;
+            }
+            QPushButton:hover {
+                background: #e5e7eb;
+            }
+        """)
         self.btn_ok = QPushButton("탈퇴하기")
-        self.btn_ok.setStyleSheet("background:#e74c3c;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        self.btn_ok.setStyleSheet("""
+            QPushButton {
+                background: #e74c3c;
+                color: white;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background: #c0392b;
+            }
+        """)
         self.btn_ok.setEnabled(False)
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(self.btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
