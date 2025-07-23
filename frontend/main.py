@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QMessageBox,
     QWidget,
+    QFrame,
     QLineEdit,
     QFormLayout,
     QStackedWidget,
@@ -18,7 +19,7 @@ from PyQt6.QtWidgets import (
     QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup, QProgressBar
 )
 from PyQt6.QtCore import Qt, QPoint, QDate
-from PyQt6.QtGui import QFont, QCursor, QColor
+from PyQt6.QtGui import QFont, QCursor, QColor, QPalette
 import api_client
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
@@ -353,14 +354,14 @@ class TodoItemWidget(QFrame):
         self.setStyleSheet("""
             QFrame#TodoCard {
                 background: #fff;
-                border-radius: 18px;
-                border: 1.5px solid #e5e7eb;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
                 padding: 20px 24px 14px 24px;
                 margin-bottom: 0px; /* 카드 간 여백 제거 */
                 font-family: 'Arial';
+                margin-bottom: 4px;
             }
             QFrame#TodoCard:hover {
-                border: 1.5px solid black;
                 background: #f3f6fd;
                 color: black;
             }
@@ -370,8 +371,6 @@ class TodoItemWidget(QFrame):
         shadow.setOffset(0, 4)
         shadow.setColor(QColor(0, 0, 0, 30))
         self.setGraphicsEffect(shadow)
-        self.setMinimumHeight(80)
-        self.setMaximumHeight(120)
         self.setFrameShadow(QFrame.Shadow.Raised)
         self.setFrameShape(QFrame.Shape.StyledPanel)
         main_layout = QHBoxLayout()
@@ -390,15 +389,12 @@ class TodoItemWidget(QFrame):
         title = QLabel(f"{todo.get('title')}")
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 2px;")
         info_layout.addWidget(title)
-        # 메타정보(카테고리, 우선순위, 마감)
+        # 메타정보(카테고리, 마감)
         meta_layout = QHBoxLayout()
         meta_layout.setSpacing(10)
         cat = todo.get('category', '기타')
         cat_badge = Badge(cat, self.CATEGORY_COLORS.get(cat, "#64748b"))
         meta_layout.addWidget(cat_badge)
-        prio = todo.get('priority', '보통')
-        prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
-        meta_layout.addWidget(prio_badge)
         duedate = todo.get('duedate', '')
         date_label = QLabel(f"🗓 {duedate}")
         date_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: bold; margin-left: 8px;")
@@ -406,6 +402,10 @@ class TodoItemWidget(QFrame):
         meta_layout.addStretch(1)
         info_layout.addLayout(meta_layout)
         main_layout.addLayout(info_layout, stretch=1)
+        # 우선순위 배지 오른쪽 끝
+        prio = todo.get('priority', '보통')
+        prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
+        main_layout.addWidget(prio_badge, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.setLayout(main_layout)
         # Remove button_bar and related logic
         # self.button_bar = QWidget() ...
@@ -508,9 +508,16 @@ class TodoListWidget(QWidget):
         priority_order = {"높음": 1, "보통": 2, "낮음": 3}
 
         sorted_todos = sorted(todos, key=lambda x: priority_order[x["priority"]])
-        for todo in sorted_todos:
-            item = TodoItemWidget(todo, self.refresh)
-            self.layout.addWidget(item)
+        if not sorted_todos:
+            empty_label = QLabel("<div style='font-size:40px;text-align:center;'>📋</div><div>할일이 없습니다!<br>새로운 할일을 추가해보세요.</div>")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("color: #888; font-size: 18px; margin: 40px 0;")
+            empty_label.setTextFormat(Qt.TextFormat.RichText)
+            self.layout.addWidget(empty_label)
+        else:
+            for todo in sorted_todos:
+                item = TodoItemWidget(todo, self.refresh)
+                self.layout.addWidget(item)
         self.layout.addStretch(1)
         # 현황 콜백
         if self.stats_callback is not None:
@@ -525,48 +532,113 @@ class TodoAddWidget(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
+        # 상단: 새 할일 추가 + * 필수 입력사항 안내
+        top_layout = QHBoxLayout()
+        self.title_label = QLabel("새 할일 추가")
+        self.title_label.setStyleSheet("font-size: 18px;")
+        top_layout.addWidget(self.title_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        required_label = QLabel('<span style="color:#e74c3c;font-size:15px;font-weight:bold;">*</span> <span style="color:#888;font-size:13px;">필수 입력사항</span>')
+        required_label.setTextFormat(Qt.TextFormat.RichText)
+        top_layout.addStretch(1)
+        top_layout.addWidget(required_label, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(top_layout)
         # 제목
+        title_label = QLabel('<span>제목 <span style="color:#e74c3c">*</span></span>')
+        title_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(title_label)
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("할일 제목을 입력하세요")
-        layout.addWidget(QLabel("제목"))
+        style = """
+            QLineEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.title_input.setStyleSheet(style)
         layout.addWidget(self.title_input)
         # 설명
+        desc_label = QLabel('<span>설명 <span style="color:#e74c3c">*</span></span>')
+        desc_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(desc_label)
         self.desc_input = QTextEdit()
-        self.desc_input.setPlaceholderText("상세 설명을 입력하세요")
-        self.desc_input.setFixedHeight(48)
-        layout.addWidget(QLabel("설명"))
+        style = """
+            QTextEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.desc_input.setStyleSheet(style)
         layout.addWidget(self.desc_input)
         # 카테고리
+        cat_label = QLabel('<span>카테고리 <span style="color:#e74c3c">*</span></span>')
+        cat_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(cat_label)
         self.category_input = QComboBox()
         self.category_input.addItems(["업무", "개인", "학습", "기타"])
-        layout.addWidget(QLabel("카테고리"))
-        layout.addWidget(self.category_input)
-        # 우선순위
-        self.priority_input = QComboBox()
-        self.priority_input.addItems(["높음", "보통", "낮음"])
-        layout.addWidget(QLabel("우선순위"))
-        layout.addWidget(self.priority_input)
         style = """
             QComboBox {
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 3px 14px;
                 background-color: white;
                 color: black;
             }
             QComboBox QListView::item:hover {
-                color: black; /* 호버 시 글씨 색 */
-                background-color: #e0e0e0; /* 호버 시 배경 */
+                color: white;
+                background-color: #2563eb;
             }
             QComboBox QListView::item:selected {
-                color: white; /* 선택된 항목 텍스트 */
-                background-color: #0078d7; /* 선택된 항목 배경 */
+                color: white;
+                background-color: #0078d7;
             }
         """
         self.category_input.setStyleSheet(style)
+        layout.addWidget(self.category_input)
+        # 우선순위
+        prio_label = QLabel('<span>우선순위 <span style="color:#e74c3c">*</span></span>')
+        prio_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(prio_label)
+        self.priority_input = QComboBox()
+        self.priority_input.addItems(["높음", "보통", "낮음"])
+        style = """
+            QComboBox {
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 3px 14px;
+                background-color: white;
+                color: black;
+            }
+            QComboBox QListView::item:hover {
+                color: white;
+                background-color: #2563eb;
+            }
+            QComboBox QListView::item:selected {
+                color: white;
+                background-color: #0078d7;
+            }
+        """
         self.priority_input.setStyleSheet(style)
+        layout.addWidget(self.priority_input)
         # 마감일
+        layout.addWidget(QLabel("마감일"))
         self.due_input = QDateEdit()
         self.due_input.setCalendarPopup(True)
         self.due_input.setDate(QDate.currentDate())
-        layout.addWidget(QLabel("마감일"))
+        style = """
+            QDateEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 3px 14px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.due_input.setStyleSheet(style)
         layout.addWidget(self.due_input)
         # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
@@ -706,7 +778,20 @@ class TodoStatsWidget(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedHeight(18)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setStyleSheet("QProgressBar {border-radius: 8px; background: #e5e7eb;} QProgressBar::chunk {background: #2563eb; border-radius: 8px;}")
+        self.progress_bar.setStyleSheet("""
+        QProgressBar {
+            border-radius: 8px;
+            background: #e5e7eb;  /* 연한 회색 배경 */
+            color: white;          /* 글씨 색상 */
+            font-weight: bold;     /* 글씨 굵게 */
+            text-align: center;    /* 텍스트 가운데 정렬 */
+        }
+        QProgressBar::chunk {
+            background: #32CD32;  /* 진한 연두색 (LimeGreen) */
+            border-radius: 8px;
+        }
+""")
+
         layout.addWidget(self.progress_bar)
         self.setLayout(layout)
         self.update_stats(0, 0, 0)
@@ -719,7 +804,7 @@ class TodoStatsWidget(QWidget):
         self.progress_bar.setValue(percent)
         self.progress_bar.setFormat(f"{percent}% 완료")
 
-class TodoSidebar(QWidget):
+class TodoSidebar(QFrame):
     def __init__(self, on_todo_added=None):
         super().__init__()
         layout = QVBoxLayout()
@@ -732,17 +817,22 @@ class TodoSidebar(QWidget):
         layout.addWidget(self.stats_widget)
         # 로그아웃/탈퇴 버튼
         self.logout_btn = QPushButton("로그아웃")
-        self.logout_btn.setStyleSheet("background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:16px;")
+        self.logout_btn.setStyleSheet("background:#e5e7eb;color:gray;font-weight:bold; padding:12px 0;font-size:15px;margin-top:16px;")
         self.logout_btn.clicked.connect(self.show_logout_dialog)
         layout.addWidget(self.logout_btn)
         self.withdraw_btn = QPushButton("회원탈퇴")
-        self.withdraw_btn.setStyleSheet("background:#fff0f0;color:#e74c3c;border:2px solid #e74c3c;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:8px;")
+        self.withdraw_btn.setStyleSheet("background:#e74c3c;color:#fff0f0;font-weight:bold; padding:12px 0; font-size:15px;margin-top:8px;")
         self.withdraw_btn.clicked.connect(self.show_withdraw_dialog)
         layout.addWidget(self.withdraw_btn)
         layout.addStretch(1)
         self.setLayout(layout)
         self.setFixedWidth(320)
-        self.setStyleSheet("background: #f8fafc; border-radius: 8px;")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("white"))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet("background: white; border-radius: 8px;")
         self.user_name = ""
         self.user_email = ""
         # fetch_user_info는 로그인 성공 후에만 호출
@@ -757,7 +847,7 @@ class TodoSidebar(QWidget):
                 user_data = resp.get("data", {})
                 self.user_name = user_data.get("name", "")
                 self.user_email = user_data.get("email", "")
-                self.stats_widget.update_stats(0, 0, 0)
+                # self.stats_widget.update_stats(0, 0, 0)  # 이 줄을 제거
             # 로그인 전/실패 시 에러 메시지 표시하지 않음
         except Exception:
             pass
@@ -787,20 +877,23 @@ class TodoMainFrame(QWidget):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # --- 검색/필터 바 ---
-        search_layout = QHBoxLayout()
+        # --- 상단: 할일 목록 + 검색창 ---
+        top_layout = QHBoxLayout()
+        top_layout.setSpacing(12)
+        title = QLabel("할일 목록")
+        title.setStyleSheet("font-weight: bold; font-size: 20px;")
+        top_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignVCenter)
+        top_layout.addStretch(1)
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("제목으로 검색...")
-        self.search_input.setFixedWidth(240)
-        self.search_input.returnPressed.connect(self.on_search)
-        search_btn = QPushButton("검색")
-        search_btn.clicked.connect(self.on_search)
-        search_layout.addWidget(self.search_input)
-        search_layout.addWidget(search_btn)
-        search_layout.addStretch(1)
-        layout.addLayout(search_layout)
+        self.search_input.setFixedWidth(220)
+        self.search_input.setStyleSheet("border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; font-size: 15px;")
+        self.search_input.textChanged.connect(self.on_search)
+        top_layout.addWidget(self.search_input, alignment=Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(top_layout)
+        # --- 두 번째 줄: 카테고리(필터) 버튼들 ---
         filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(8)
+        filter_layout.setSpacing(6)
         self.filter_group = QButtonGroup(self)
         self.filter_buttons = {}
         filter_names = [
@@ -815,22 +908,30 @@ class TodoMainFrame(QWidget):
         for label, key in filter_names:
             btn = QPushButton(label)
             btn.setCheckable(True)
-            btn.setStyleSheet("QPushButton {padding:6px 18px;border-radius:8px;} QPushButton:checked {background:#2563eb;color:white;}")
+            btn.setStyleSheet("QPushButton {padding:3px 10px; min-width: 0; min-height: 0; font-size: 13px; border-radius:6px;} QPushButton:checked {background:#2563eb;color:white;}")
             self.filter_group.addButton(btn)
             self.filter_buttons[key] = btn
             filter_layout.addWidget(btn)
         self.filter_buttons["all"].setChecked(True)
+        filter_layout.addStretch(1)
         layout.addLayout(filter_layout)
-        title = QLabel("할일 목록")
-        title.setStyleSheet("font-weight: bold; font-size: 18px;")
-        layout.addWidget(title)
         self.todo_list = TodoListWidget(self.update_stats_from_list)
         layout.addWidget(self.todo_list)
         self.setLayout(layout)
-        self.setStyleSheet("background: #fff; border-radius: 8px;")
+        self.setStyleSheet("background: white; border-radius: 16px;")
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("white"))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
         self.current_filter = "all"
         self.current_search = ""
         self.filter_group.buttonClicked.connect(self.on_filter_changed)
+
+    def paintEvent(self, event):
+        from PyQt6.QtGui import QPainter
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("white"))
+        super().paintEvent(event)
 
     def on_filter_changed(self, btn):
         for key, button in self.filter_buttons.items():
@@ -871,7 +972,6 @@ class TodoMainPage(QWidget):
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)
-        self.setStyleSheet("background: #f6f8fb;")
 
     def set_edit_mode(self, todo):
         self.sidebar.set_edit_mode(todo)
@@ -913,9 +1013,36 @@ class LogoutDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: #f6f8fb;
+                color: #222;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+                margin-right: 8px;
+            }
+            QPushButton:hover {
+                background: #e5e7eb;
+            }
+        """)
         btn_ok = QPushButton("로그아웃")
-        btn_ok.setStyleSheet("background:#222;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_ok.setStyleSheet("""
+            QPushButton {
+                background: #222;
+                color: white;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background: #111;
+            }
+        """)
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
         btns.accepted.connect(self.accept)
@@ -980,9 +1107,36 @@ class WithdrawDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: #f6f8fb;
+                color: #222;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+                margin-right: 8px;
+            }
+            QPushButton:hover {
+                background: #e5e7eb;
+            }
+        """)
         self.btn_ok = QPushButton("탈퇴하기")
-        self.btn_ok.setStyleSheet("background:#e74c3c;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        self.btn_ok.setStyleSheet("""
+            QPushButton {
+                background: #e74c3c;
+                color: white;
+                border-radius: 8px;
+                padding: 12px 0;
+                font-weight: bold;
+                font-size: 16px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background: #c0392b;
+            }
+        """)
         self.btn_ok.setEnabled(False)
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(self.btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
