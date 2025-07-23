@@ -744,7 +744,20 @@ class TodoStatsWidget(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedHeight(18)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setStyleSheet("QProgressBar {border-radius: 8px; background: #e5e7eb;} QProgressBar::chunk {background: #2563eb; border-radius: 8px;}")
+        self.progress_bar.setStyleSheet("""
+        QProgressBar {
+            border-radius: 8px;
+            background: #e5e7eb;  /* 연한 회색 배경 */
+            color: white;          /* 글씨 색상 */
+            font-weight: bold;     /* 글씨 굵게 */
+            text-align: center;    /* 텍스트 가운데 정렬 */
+        }
+        QProgressBar::chunk {
+            background: #32CD32;  /* 진한 연두색 (LimeGreen) */
+            border-radius: 8px;
+        }
+""")
+
         layout.addWidget(self.progress_bar)
         self.setLayout(layout)
         self.update_stats(0, 0, 0)
@@ -801,7 +814,7 @@ class TodoSidebar(QFrame):
                 user_data = resp.get("data", {})
                 self.user_name = user_data.get("name", "")
                 self.user_email = user_data.get("email", "")
-                self.stats_widget.update_stats(0, 0, 0)
+                # self.stats_widget.update_stats(0, 0, 0)  # 이 줄을 제거
             # 로그인 전/실패 시 에러 메시지 표시하지 않음
         except Exception:
             pass
