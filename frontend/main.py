@@ -164,6 +164,12 @@ class LoginWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
 
+    def clear_fields(self):
+        if hasattr(self, 'email') and self.email:
+            self.email.setText("")
+        if hasattr(self, 'password') and self.password:
+            self.password.setText("")
+
 # RegisterWidget도 동일 스타일로 리팩토링(생략 가능, 필요시 추가)
 class RegisterWidget(QWidget):
     def __init__(self, switch_to_login):
@@ -312,6 +318,14 @@ class RegisterWidget(QWidget):
                 QMessageBox.warning(self, "회원가입 실패", msg)
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
+
+    def clear_fields(self):
+        if hasattr(self, 'email') and self.email:
+            self.email.setText("")
+        if hasattr(self, 'password') and self.password:
+            self.password.setText("")
+        if hasattr(self, 'name') and self.name:
+            self.name.setText("")
 
 class Badge(QLabel):
     def __init__(self, text, color):
@@ -713,20 +727,57 @@ class TodoSidebar(QWidget):
         # 진행 현황 통계
         self.stats_widget = TodoStatsWidget()
         layout.addWidget(self.stats_widget)
-        # 예시 타이틀(삭제)
-        # title = QLabel("사이드바")
-        # title.setStyleSheet("font-weight: bold; font-size: 18px;")
-        # layout.addWidget(title)
+        # 로그아웃/탈퇴 버튼
+        self.logout_btn = QPushButton("로그아웃")
+        self.logout_btn.setStyleSheet("background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:16px;")
+        self.logout_btn.clicked.connect(self.show_logout_dialog)
+        layout.addWidget(self.logout_btn)
+        self.withdraw_btn = QPushButton("회원탈퇴")
+        self.withdraw_btn.setStyleSheet("background:#fff0f0;color:#e74c3c;border:2px solid #e74c3c;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;margin-top:8px;")
+        self.withdraw_btn.clicked.connect(self.show_withdraw_dialog)
+        layout.addWidget(self.withdraw_btn)
         layout.addStretch(1)
         self.setLayout(layout)
         self.setFixedWidth(320)
         self.setStyleSheet("background: #f8fafc; border-radius: 8px;")
+        self.user_name = ""
+        self.user_email = ""
+        # fetch_user_info는 로그인 성공 후에만 호출
+
+    def fetch_user_info(self):
+        from api_client import load_token
+        if not load_token():
+            return  # 로그인 전이면 아무것도 하지 않음
+        try:
+            resp = api_client.get_me()
+            if resp.get("success"):
+                user_data = resp.get("data", {})
+                self.user_name = user_data.get("name", "")
+                self.user_email = user_data.get("email", "")
+                self.stats_widget.update_stats(0, 0, 0)
+            # 로그인 전/실패 시 에러 메시지 표시하지 않음
+        except Exception:
+            pass
 
     def set_edit_mode(self, todo):
         self.add_widget.set_edit_mode(todo)
 
     def update_stats(self, total, done, wait):
         self.stats_widget.update_stats(total, done, wait)
+
+    def show_logout_dialog(self):
+        dialog = LogoutDialog(self.user_name, self.user_email, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            mw = self.window()
+            if hasattr(mw, "logout"):
+                mw.logout()
+
+    def show_withdraw_dialog(self):
+        dialog = WithdrawDialog(self.user_name, self.user_email, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            mw = self.window()
+            if hasattr(mw, "withdraw"):
+                mw.withdraw()
 
 class TodoMainFrame(QWidget):
     def __init__(self):
@@ -821,6 +872,124 @@ class TodoMainPage(QWidget):
     def set_edit_mode(self, todo):
         self.sidebar.set_edit_mode(todo)
 
+class LogoutDialog(QDialog):
+    def __init__(self, user_name, user_email, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("")
+        self.setFixedWidth(420)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(18)
+        # 아이콘
+        icon = QLabel()
+        icon.setText("<span style='font-size:38px;'>📄</span>")
+        icon.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(icon)
+        # 제목
+        title = QLabel("로그아웃")
+        title.setStyleSheet("font-size: 22px; font-weight: bold; margin-bottom: 2px;")
+        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(title)
+        # 확인 문구
+        msg = QLabel("정말 로그아웃하시겠습니까?")
+        msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        msg.setStyleSheet("font-size: 15px; margin-bottom: 8px;")
+        layout.addWidget(msg)
+        # 유저 정보 카드
+        user_card = QLabel(f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>")
+        user_card.setStyleSheet("background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;")
+        layout.addWidget(user_card)
+        # 안내문구
+        info1 = QLabel("로그아웃하면 현재 세션이 종료됩니다.")
+        info2 = QLabel("다시 로그인해야 서비스를 이용할 수 있습니다.")
+        info1.setStyleSheet("color:#444;margin-bottom:0px;")
+        info2.setStyleSheet("color:#444;margin-bottom:0px;")
+        layout.addWidget(info1)
+        layout.addWidget(info2)
+        # 버튼
+        btns = QDialogButtonBox()
+        btn_cancel = QPushButton("취소")
+        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btn_ok = QPushButton("로그아웃")
+        btn_ok.setStyleSheet("background:#222;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
+        btns.addButton(btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns)
+        self.setLayout(layout)
+
+class WithdrawDialog(QDialog):
+    def __init__(self, user_name, user_email, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("")
+        self.setFixedWidth(480)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(18)
+        # 경고 아이콘
+        icon = QLabel()
+        icon.setText("<span style='font-size:38px;color:#f59e42;'>⚠️</span>")
+        icon.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(icon)
+        # 제목
+        title = QLabel("회원탈퇴")
+        title.setStyleSheet("font-size: 22px; font-weight: bold; margin-bottom: 2px;")
+        title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(title)
+        # 확인 문구
+        msg = QLabel("정말로 탈퇴하시겠습니까?")
+        msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        msg.setStyleSheet("font-size: 15px; margin-bottom: 8px;")
+        layout.addWidget(msg)
+        # 유저 정보 카드
+        user_card = QLabel(f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>")
+        user_card.setStyleSheet("background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;")
+        layout.addWidget(user_card)
+        # 주의사항
+        warn = QLabel("""
+        <div style='background:#fff0f0;border:2px solid #e74c3c;padding:10px 14px;border-radius:8px;margin:8px 0;'>
+        <b style='color:#e74c3c;'>⚠️ 주의사항</b><br>
+        <span style='color:#e74c3c;'>탈퇴 후 계정은 복구할 수 없습니다.<br>
+        모든 데이터가 영구적으로 삭제됩니다.</span>
+        </div>
+        """)
+        warn.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(warn)
+        # 삭제 정보 리스트
+        info = QLabel("""
+        <div style='margin:8px 0 0 0;'>
+        <b>회원탈퇴 시 다음 정보들이 모두 삭제됩니다:</b><br>
+        <ul style='margin:0 0 0 16px;'>
+        <li>프로필 정보 및 계정 데이터</li>
+        <li>작성한 게시물 및 댓글</li>
+        <li>포인트 및 쿠폰 정보</li>
+        <li>구매 내역 및 결제 정보</li>
+        </ul>
+        </div>
+        """)
+        info.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(info)
+        # 체크박스
+        self.agree_chk = QCheckBox("위 내용을 확인했으며, 회원탈퇴에 동의합니다.")
+        layout.addWidget(self.agree_chk)
+        # 버튼
+        btns = QDialogButtonBox()
+        btn_cancel = QPushButton("취소")
+        btn_cancel.setStyleSheet("background:#f6f8fb;color:#222;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        self.btn_ok = QPushButton("탈퇴하기")
+        self.btn_ok.setStyleSheet("background:#e74c3c;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:15px;")
+        self.btn_ok.setEnabled(False)
+        btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
+        btns.addButton(self.btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns)
+        self.setLayout(layout)
+        self.agree_chk.stateChanged.connect(self.on_check)
+    def on_check(self, state):
+        self.btn_ok.setEnabled(self.agree_chk.isChecked())
+
 # MainWindow의 _main_content_widget을 TodoMainPage로 교체
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -838,19 +1007,31 @@ class MainWindow(QMainWindow):
         self.show_login()
 
     def show_login(self):
+        self.login_widget.clear_fields()
         self.stack.setCurrentIndex(0)
+        if hasattr(self.main_widget, 'main_frame') and hasattr(self.main_widget.main_frame, 'todo_list'):
+            self.main_widget.main_frame.todo_list.set_filter('all', '')
 
     def show_register(self):
+        self.register_widget.clear_fields()
         self.stack.setCurrentIndex(1)
 
     def show_main(self):
         self.stack.setCurrentIndex(2)
+        if hasattr(self.main_widget, 'main_frame') and hasattr(self.main_widget.main_frame, 'todo_list'):
+            self.main_widget.main_frame.todo_list.set_filter('all', '')
+        if hasattr(self.main_widget, 'sidebar'):
+            self.main_widget.sidebar.fetch_user_info()
 
     def _main_content_widget(self):
         return TodoMainPage()
 
     def logout(self):
         api_client.logout()
+        self.show_login()
+
+    def withdraw(self):
+        api_client.withdraw()
         self.show_login()
 
 if __name__ == "__main__":
