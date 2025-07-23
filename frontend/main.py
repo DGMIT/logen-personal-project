@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup, QProgressBar
 )
 from PyQt6.QtCore import Qt, QPoint, QDate
-from PyQt6.QtGui import QFont, QCursor, QColor
+from PyQt6.QtGui import QFont, QCursor, QColor, QPalette
 import api_client
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
@@ -354,14 +354,14 @@ class TodoItemWidget(QFrame):
         self.setStyleSheet("""
             QFrame#TodoCard {
                 background: #fff;
-                border-radius: 18px;
-                border: 1.5px solid #e5e7eb;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
                 padding: 20px 24px 14px 24px;
                 margin-bottom: 0px; /* 카드 간 여백 제거 */
                 font-family: 'Arial';
+                margin-bottom: 4px;
             }
             QFrame#TodoCard:hover {
-                border: 1.5px solid black;
                 background: #f3f6fd;
                 color: black;
             }
@@ -788,7 +788,6 @@ class TodoSidebar(QFrame):
         self.setLayout(layout)
         self.setFixedWidth(320)
         self.setFrameShape(QFrame.Shape.StyledPanel)
-        from PyQt6.QtGui import QPalette, QColor
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.Window, QColor("white"))
         self.setPalette(palette)
@@ -879,10 +878,20 @@ class TodoMainFrame(QWidget):
         self.todo_list = TodoListWidget(self.update_stats_from_list)
         layout.addWidget(self.todo_list)
         self.setLayout(layout)
-        self.setStyleSheet("background: #fff; border-radius: 8px;")
+        self.setStyleSheet("background: white; border-radius: 16px;")
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("white"))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
         self.current_filter = "all"
         self.current_search = ""
         self.filter_group.buttonClicked.connect(self.on_filter_changed)
+
+    def paintEvent(self, event):
+        from PyQt6.QtGui import QPainter
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("white"))
+        super().paintEvent(event)
 
     def on_filter_changed(self, btn):
         for key, button in self.filter_buttons.items():
