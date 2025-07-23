@@ -556,6 +556,12 @@ class TodoAddWidget(QWidget):
         self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
         self.add_btn.clicked.connect(self.on_btn_clicked)
         layout.addWidget(self.add_btn)
+        # 수정중 상태 취소 버튼 (초기에는 숨김)
+        self.cancel_btn = QPushButton("수정중 상태 취소")
+        self.cancel_btn.setStyleSheet("background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;")
+        self.cancel_btn.clicked.connect(self.reset_mode)
+        self.cancel_btn.setVisible(False)
+        layout.addWidget(self.cancel_btn)
         layout.addStretch(1)
         self.setLayout(layout)
 
@@ -586,6 +592,7 @@ class TodoAddWidget(QWidget):
                 pass
         self.add_btn.setText("할일 수정하기")
         self.add_btn.setStyleSheet("background:#2563eb;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.cancel_btn.setVisible(True)
 
     def reset_mode(self):
         self.edit_mode = False
@@ -597,6 +604,7 @@ class TodoAddWidget(QWidget):
         self.due_input.setDate(QDate.currentDate())
         self.add_btn.setText("할일 추가")
         self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.cancel_btn.setVisible(False)
 
     def add_todo(self):
         title = self.title_input.text().strip()
