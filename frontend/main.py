@@ -499,13 +499,16 @@ class TodoListWidget(QWidget):
             params["done"] = True
         elif self._filter == "not_done":
             params["done"] = False
-        elif self._filter in ("업무", "개인", "학습"):
+        elif self._filter in ("업무", "개인", "학습","기타"):
             params["category"] = self._filter
         if self._search:
             params["search"] = self._search
         resp = api_client.list_todos(**params)
         todos = resp.get('data', {}).get('todos', []) if resp.get('success') else []
-        for todo in todos:
+        priority_order = {"높음": 1, "보통": 2, "낮음": 3}
+
+        sorted_todos = sorted(todos, key=lambda x: priority_order[x["priority"]])
+        for todo in sorted_todos:
             item = TodoItemWidget(todo, self.refresh)
             self.layout.addWidget(item)
         self.layout.addStretch(1)
@@ -807,6 +810,7 @@ class TodoMainFrame(QWidget):
             ("업무", "업무"),
             ("개인", "개인"),
             ("학습", "학습"),
+            ("기타", "기타"),
         ]
         for label, key in filter_names:
             btn = QPushButton(label)
