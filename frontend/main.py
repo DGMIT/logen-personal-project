@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QMessageBox,
     QWidget,
+    QFrame,
     QLineEdit,
     QFormLayout,
     QStackedWidget,
@@ -530,17 +531,45 @@ class TodoAddWidget(QWidget):
         self.title_input.setPlaceholderText("할일 제목을 입력하세요")
         layout.addWidget(QLabel("제목"))
         layout.addWidget(self.title_input)
+        style = """
+            QLineEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.title_input.setStyleSheet(style)
         # 설명
         self.desc_input = QTextEdit()
         self.desc_input.setPlaceholderText("상세 설명을 입력하세요")
         self.desc_input.setFixedHeight(48)
         layout.addWidget(QLabel("설명"))
         layout.addWidget(self.desc_input)
+        style = """
+            QTextEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
+                background-color: white;
+                color: black;
+            }
+        """
+        self.desc_input.setStyleSheet(style)
         # 카테고리
         self.category_input = QComboBox()
         self.category_input.addItems(["업무", "개인", "학습", "기타"])
         layout.addWidget(QLabel("카테고리"))
         layout.addWidget(self.category_input)
+        style = """
+            QComboBox {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
+            }
+        """
+        self.category_input.setStyleSheet(style)
         # 우선순위
         self.priority_input = QComboBox()
         self.priority_input.addItems(["높음", "보통", "낮음"])
@@ -550,6 +579,9 @@ class TodoAddWidget(QWidget):
             QComboBox {
                 background-color: white;
                 color: black;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 4px 6px;
             }
             QComboBox QListView::item:hover {
                 color: black; /* 호버 시 글씨 색 */
@@ -560,7 +592,6 @@ class TodoAddWidget(QWidget):
                 background-color: #0078d7; /* 선택된 항목 배경 */
             }
         """
-        self.category_input.setStyleSheet(style)
         self.priority_input.setStyleSheet(style)
         # 마감일
         self.due_input = QDateEdit()
@@ -568,6 +599,13 @@ class TodoAddWidget(QWidget):
         self.due_input.setDate(QDate.currentDate())
         layout.addWidget(QLabel("마감일"))
         layout.addWidget(self.due_input)
+        style = """
+            QDateEdit {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+            }
+        """
+        self.due_input.setStyleSheet(style)
         # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
         self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
@@ -719,7 +757,7 @@ class TodoStatsWidget(QWidget):
         self.progress_bar.setValue(percent)
         self.progress_bar.setFormat(f"{percent}% 완료")
 
-class TodoSidebar(QWidget):
+class TodoSidebar(QFrame):
     def __init__(self, on_todo_added=None):
         super().__init__()
         layout = QVBoxLayout()
@@ -742,7 +780,13 @@ class TodoSidebar(QWidget):
         layout.addStretch(1)
         self.setLayout(layout)
         self.setFixedWidth(320)
-        self.setStyleSheet("background: #f8fafc; border-radius: 8px;")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        from PyQt6.QtGui import QPalette, QColor
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("white"))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet("background: white; border-radius: 8px;")
         self.user_name = ""
         self.user_email = ""
         # fetch_user_info는 로그인 성공 후에만 호출
@@ -871,7 +915,6 @@ class TodoMainPage(QWidget):
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)
-        self.setStyleSheet("background: #f6f8fb;")
 
     def set_edit_mode(self, todo):
         self.sidebar.set_edit_mode(todo)
