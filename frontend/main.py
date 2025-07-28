@@ -54,7 +54,8 @@ class LoginWidget(QWidget):
         card_top.setStyleSheet(
             """
             QFrame#CardTop {
-                background: white;
+                background: white !important;
+                background-color: white !important;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
@@ -66,10 +67,12 @@ class LoginWidget(QWidget):
         icon = QLabel("🔒")
         icon.setFont(QFont("Arial", 48))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon.setStyleSheet("background: white; background-color: white;")
         vbox_top.addWidget(icon)
         title = QLabel("로그인")
         title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("color: #222; background: white; background-color: white;")
         vbox_top.addWidget(title)
         desc = QLabel("Smart Task Manager에 오신 것을 환영합니다.")
         desc.setFont(QFont("Arial", 11))
@@ -100,6 +103,7 @@ class LoginWidget(QWidget):
         id_label = QLabel("아이디 <span style='color:#e74c3c'>*</span>")
         id_label.setTextFormat(Qt.TextFormat.RichText)
         id_label.setFont(QFont("Arial", 11))
+        id_label.setStyleSheet("color: #222; background: white; background-color: white;")
         self.email = QLineEdit()
         self.email.setPlaceholderText("example@naver.com")
         self.email.setFixedHeight(38)
@@ -110,6 +114,7 @@ class LoginWidget(QWidget):
         pw_label = QLabel("비밀번호 <span style='color:#e74c3c'>*</span>")
         pw_label.setTextFormat(Qt.TextFormat.RichText)
         pw_label.setFont(QFont("Arial", 11))
+        pw_label.setStyleSheet("color: #222; background: white; background-color: white;")
         self.password = QLineEdit()
         self.password.setPlaceholderText("password")
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
@@ -210,7 +215,8 @@ class RegisterWidget(QWidget):
         card_top.setStyleSheet(
             """
             QFrame#CardTop {
-                background: white;
+                background: white !important;
+                background-color: white !important;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
@@ -222,10 +228,12 @@ class RegisterWidget(QWidget):
         icon = QLabel("📝")
         icon.setFont(QFont("Arial", 48))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon.setStyleSheet("background: white; background-color: white;")
         vbox_top.addWidget(icon)
         title = QLabel("회원가입")
         title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("color: #222; background: white; background-color: white;")
         vbox_top.addWidget(title)
         desc = QLabel("Smart Task Manager에 오신 것을 환영합니다.")
         desc.setFont(QFont("Arial", 11))
@@ -254,6 +262,7 @@ class RegisterWidget(QWidget):
         id_label = QLabel("아이디 <span style='color:#e74c3c'>*</span>")
         id_label.setTextFormat(Qt.TextFormat.RichText)
         id_label.setFont(QFont("Arial", 11))
+        id_label.setStyleSheet("color: #222; background: white; background-color: white;")
         self.email = QLineEdit()
         self.email.setPlaceholderText("example@naver.com")
         self.email.setFixedHeight(38)
@@ -264,6 +273,7 @@ class RegisterWidget(QWidget):
         pw_label = QLabel("비밀번호 <span style='color:#e74c3c'>*</span>")
         pw_label.setTextFormat(Qt.TextFormat.RichText)
         pw_label.setFont(QFont("Arial", 11))
+        pw_label.setStyleSheet("color: #222; background: white; background-color: white;")
         self.password = QLineEdit()
         self.password.setPlaceholderText("password")
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
@@ -275,6 +285,7 @@ class RegisterWidget(QWidget):
         name_label = QLabel("이름 <span style='color:#e74c3c'>*</span>")
         name_label.setTextFormat(Qt.TextFormat.RichText)
         name_label.setFont(QFont("Arial", 11))
+        name_label.setStyleSheet("color: #222; background: white; background-color: white;")
         self.name = QLineEdit()
         self.name.setPlaceholderText("홍길동")
         self.name.setFixedHeight(38)
