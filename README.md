@@ -53,7 +53,6 @@
 | --- | --- | --- |
 | 프론트 | PyQt6 (v6.9.1) | 크로스-플랫폼 데스크톱 GUI 프레임워크 |
 | API | FastAPI (v0.104.1) | 비동기 지원, 타이핑 기반의 현대적 Python 웹 프레임워크 |
-| 자동화 | Playwright (v1.42.0) | 브라우저 자동화, E2E 테스트 및 크롤링 도구 |
 | 컨테이너화 | Docker | 애플리케이션 컨테이너 빌드, 배포, 실행 환경 |
 | 데이터베이스 | MariaDB | 메인 관계형 데이터베이스 관리 시스템 |
 
@@ -168,10 +167,9 @@ DB_HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=1234
 DB_NAME=todo_app
-# openssl rand -hex 32 를 통해 발급함
-JWT_SECRET_KEY=ca13a31abde015a62ab84172712a3e2fc8d6a830a4dca45e0e70bbbcdff7f91d
-JWT_ALGORITHM = "HS256"
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_SECRET_KEY= ${발급한 키}
+JWT_ALGORITHM = ${원하는 알고리즘}
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = ${원하는 만료 시간}
 ```
 
 * `DB_PASSWORD`는 MariaDB 루트 비밀번호와 동일하게 설정해야 합니다.
@@ -221,7 +219,7 @@ cd frontend
 ```
 python main.py
 ```
-
+---
 ## PyInstaller로 실행파일 만들기 (Windows/macOS)
 
 본 실행파일은 **백엔드가 이미 배포되어 있고, MariaDB 데이터베이스와 FastAPI 서버가 실행 중일 때 정상 동작**합니다.
@@ -253,3 +251,4 @@ pyinstaller --noconfirm --noconsole --onefile --name smarttaskmanager --icon=./a
   * open ${경로}/dist/smarttaskmanager.app 로 터미널에서도 실행이 가능합니다.
   * smarttaskmanager 또는 smarttaskmanager.exe 또는 smarttaskmanager.app 파일을 더블 클릭으로 실행 가능합니다.
 * macOS `.app`은 압축하지 않고 공유하면 손상되니, 반드시 `.zip`으로 압축 후 전달해야 합니다.
+
