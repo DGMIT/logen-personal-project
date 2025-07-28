@@ -245,9 +245,9 @@ pyinstaller --noconfirm --noconsole --onefile main.py --name smarttaskmanager
 
 * `dist/` 폴더 안에 `smarttaskmanager.exe`(Windows) 또는 `smarttaskmanager.app`(macOS)이 생성됩니다.
 * 더블클릭 또는 커맨드라인에서 실행 가능합니다.
-  * ./dist/smarttaskmanager 로 터미널에서도 실행이 가능합니다.
-  * open dist/smarttaskmanager.app 로 터미널에서도 실행이 가능합니다.
-  * exe 또는 app 파일을 더블 클릭으로 실행 가능합니다.
+  * ${경로}/dist/smarttaskmanager 로 터미널에서도 실행이 가능합니다.
+  * open ${경로}/dist/smarttaskmanager.app 로 터미널에서도 실행이 가능합니다.
+  * smarttaskmanager 또는 smarttaskmanager.exe 또는 smarttaskmanager.app 파일을 더블 클릭으로 실행 가능합니다.
 * macOS `.app`은 압축하지 않고 공유하면 손상되니, 반드시 `.zip`으로 압축 후 전달해야 합니다.
 * 실행파일은 용량이 크고 운영체제별로 다르며, 소스가 아니기 때문에 Git 저장소에 포함하지 않습니다.
 * 빌드 파일은 언제든 재생성 가능하므로 버전관리 대상에서 제외하는 것이 일반적입니다.
