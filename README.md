@@ -236,6 +236,10 @@ PyQt GUI 앱을 만든 후, 백엔드를 배포했다고 가정하고 누구나 
 pip install pyinstaller
 pyinstaller --noconfirm --noconsole --onefile main.py --name smarttaskmanager
 ```
+- 만약 icon을 추가하고싶다면 현재 디렉토리 기준 아래와같이 작성하면 됩니다.
+```bash
+pyinstaller --noconfirm --noconsole --onefile --name smarttaskmanager --icon=./app_image.png main.py
+```
 
 * `--noconsole`: GUI 앱이라 콘솔 창이 뜨지 않도록
 * `--onefile`: 모든 코드를 하나의 실행파일로 묶음
