@@ -221,3 +221,37 @@ cd frontend
 ```
 python main.py
 ```
+
+## PyInstaller로 실행파일 만들기 (Windows/macOS)
+
+본 실행파일은 **백엔드가 이미 배포되어 있고, MariaDB 데이터베이스와 FastAPI 서버가 실행 중일 때 정상 동작**합니다.
+따라서 반드시 먼저 DB 컨테이너를 띄우고, FastAPI 서버를 실행한 뒤 실행파일을 실행해야 합니다.
+
+
+PyQt GUI 앱을 만든 후, 백엔드를 배포했다고 가정하고 누구나 쉽게 실행할 수 있는 실행파일을 만들어 보았습니다.
+단순히 `.py` 파일을 실행하는 것보다, 개발 환경이 아닌 사용자도 **더블클릭 한 번으로 앱을 실행할 수 있도록** 하여 사용성을 크게 높이고자 했습니다.
+### 실행파일 생성 방법
+
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --noconsole --onefile main.py --name smarttaskmanager
+```
+- 만약 icon을 추가하고싶다면 현재 디렉토리 기준 아래와같이 작성하면 됩니다.
+```bash
+pyinstaller --noconfirm --noconsole --onefile --name smarttaskmanager --icon=./app_image.png main.py
+```
+
+* `--noconsole`: GUI 앱이라 콘솔 창이 뜨지 않도록
+* `--onefile`: 모든 코드를 하나의 실행파일로 묶음
+* `--name`: 실행파일 이름 지정
+
+### 결과 및 실행
+
+* `dist/` 폴더 안에 `smarttaskmanager.exe`(Windows) 또는 `smarttaskmanager.app`(macOS)이 생성됩니다.
+* 더블클릭 또는 커맨드라인에서 실행 가능합니다.
+  * ${경로}/dist/smarttaskmanager 로 터미널에서도 실행이 가능합니다.
+  * open ${경로}/dist/smarttaskmanager.app 로 터미널에서도 실행이 가능합니다.
+  * smarttaskmanager 또는 smarttaskmanager.exe 또는 smarttaskmanager.app 파일을 더블 클릭으로 실행 가능합니다.
+* macOS `.app`은 압축하지 않고 공유하면 손상되니, 반드시 `.zip`으로 압축 후 전달해야 합니다.
+* 실행파일은 용량이 크고 운영체제별로 다르며, 소스가 아니기 때문에 Git 저장소에 포함하지 않습니다.
+* 빌드 파일은 언제든 재생성 가능하므로 버전관리 대상에서 제외하는 것이 일반적입니다.

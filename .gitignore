@@ -12,6 +12,9 @@ backend/__pypackages__/
 # PyQt6 (frontend)
 frontend/.venv/
 frontend/__pycache__/
+frontend/build/
+frontend/dist/
+frontend/*.spec
 frontend/*.pyc
 frontend/.env
 frontend/.vscode/
@@ -50,3 +53,4 @@ Temporary Items
 # 기타
 *.log
 .envrc
+
