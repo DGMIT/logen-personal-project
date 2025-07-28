@@ -1,27 +1,38 @@
 import sys
+
+import api_client
+from PyQt6.QtCore import QDate, QPoint, Qt
+from PyQt6.QtGui import QColor, QCursor, QFont, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QDateEdit,
     QDialog,
-    QMainWindow,
-    QPushButton,
-    QLabel,
-    QVBoxLayout,
     QDialogButtonBox,
-    QMessageBox,
-    QWidget,
-    QFrame,
-    QLineEdit,
     QFormLayout,
-    QStackedWidget,
-    QHBoxLayout,
     QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
     QSizePolicy,
-    QListWidget, QListWidgetItem, QMenu, QInputDialog, QTextEdit, QComboBox, QDateEdit, QCheckBox, QScrollArea, QButtonGroup, QProgressBar
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, QPoint, QDate
-from PyQt6.QtGui import QFont, QCursor, QColor, QPalette
-import api_client
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+
 
 class LoginWidget(QWidget):
     def __init__(self, switch_to_main, switch_to_register):
@@ -40,14 +51,16 @@ class LoginWidget(QWidget):
         card_top = QFrame()
         card_top.setObjectName("CardTop")
         card_top.setFixedWidth(420)
-        card_top.setStyleSheet("""
+        card_top.setStyleSheet(
+            """
             QFrame#CardTop {
                 background: white;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
             }
-        """)
+        """
+        )
         vbox_top = QVBoxLayout()
         vbox_top.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon = QLabel("🔒")
@@ -71,14 +84,16 @@ class LoginWidget(QWidget):
         card = QFrame()
         card.setObjectName("Card")
         card.setFixedWidth(420)
-        card.setStyleSheet("""
+        card.setStyleSheet(
+            """
             QFrame#Card {
                 background: white;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
             }
-        """)
+        """
+        )
         vbox = QVBoxLayout()
         vbox.setSpacing(16)
         # 아이디
@@ -106,7 +121,8 @@ class LoginWidget(QWidget):
         btn_login = QPushButton("로그인")
         btn_login.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         btn_login.setFixedHeight(40)
-        btn_login.setStyleSheet("""
+        btn_login.setStyleSheet(
+            """
             QPushButton {
                 background: #2563eb;
                 color: white;
@@ -117,7 +133,8 @@ class LoginWidget(QWidget):
             QPushButton:hover {
                 background: #1d4ed8;
             }
-        """)
+        """
+        )
         btn_login.clicked.connect(self.try_login)
         vbox.addWidget(btn_login)
         vbox.addSpacing(8)
@@ -127,7 +144,9 @@ class LoginWidget(QWidget):
         label_no_account = QLabel("계정이 없으신가요?")
         label_no_account.setFont(QFont("Arial", 10))
         hbox.addWidget(label_no_account)
-        link_signup = QLabel("<a href='#' style='color:#2563eb;text-decoration:none;'>회원가입</a>")
+        link_signup = QLabel(
+            "<a href='#' style='color:#2563eb;text-decoration:none;'>회원가입</a>"
+        )
         link_signup.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         link_signup.setTextFormat(Qt.TextFormat.RichText)
         link_signup.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -139,17 +158,21 @@ class LoginWidget(QWidget):
         outer_layout.addWidget(card)
         outer_layout.addStretch(1)
         self.setLayout(outer_layout)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QWidget {
                 background: #f6f8fb;
             }
-        """)
+        """
+        )
 
     def try_login(self):
         email = self.email.text().strip()
         password = self.password.text().strip()
         if not email or not password:
-            QMessageBox.warning(self, "입력 오류", "이메일과 비밀번호를 모두 입력하세요.")
+            QMessageBox.warning(
+                self, "입력 오류", "이메일과 비밀번호를 모두 입력하세요."
+            )
             return
         try:
             resp = api_client.login(email, password)
@@ -158,18 +181,17 @@ class LoginWidget(QWidget):
             else:
                 msg = resp.get("message") or resp.get("detail") or "로그인 실패"
                 if isinstance(msg, list):
-                    msg = "\n".join(
-                        item.get("msg", str(item)) for item in msg
-                    )
+                    msg = "\n".join(item.get("msg", str(item)) for item in msg)
                 QMessageBox.warning(self, "로그인 실패", msg)
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
 
     def clear_fields(self):
-        if hasattr(self, 'email') and self.email:
+        if hasattr(self, "email") and self.email:
             self.email.setText("")
-        if hasattr(self, 'password') and self.password:
+        if hasattr(self, "password") and self.password:
             self.password.setText("")
+
 
 # RegisterWidget도 동일 스타일로 리팩토링(생략 가능, 필요시 추가)
 class RegisterWidget(QWidget):
@@ -185,14 +207,16 @@ class RegisterWidget(QWidget):
         card_top = QFrame()
         card_top.setObjectName("CardTop")
         card_top.setFixedWidth(420)
-        card_top.setStyleSheet("""
+        card_top.setStyleSheet(
+            """
             QFrame#CardTop {
                 background: white;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
             }
-        """)
+        """
+        )
         vbox_top = QVBoxLayout()
         vbox_top.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon = QLabel("📝")
@@ -214,14 +238,16 @@ class RegisterWidget(QWidget):
         card = QFrame()
         card.setObjectName("Card")
         card.setFixedWidth(420)
-        card.setStyleSheet("""
+        card.setStyleSheet(
+            """
             QFrame#Card {
                 background: white;
                 border-radius: 16px;
                 padding: 32px 24px 24px 24px;
                 border: 1px solid #f0f0f0;
             }
-        """)
+        """
+        )
         vbox = QVBoxLayout()
         vbox.setSpacing(16)
         # 아이디
@@ -259,7 +285,8 @@ class RegisterWidget(QWidget):
         btn_register = QPushButton("회원가입")
         btn_register.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         btn_register.setFixedHeight(40)
-        btn_register.setStyleSheet("""
+        btn_register.setStyleSheet(
+            """
             QPushButton {
                 background: #2563eb;
                 color: white;
@@ -270,7 +297,8 @@ class RegisterWidget(QWidget):
             QPushButton:hover {
                 background: #1d4ed8;
             }
-        """)
+        """
+        )
         btn_register.clicked.connect(self.try_register)
         vbox.addWidget(btn_register)
         vbox.addSpacing(8)
@@ -280,7 +308,9 @@ class RegisterWidget(QWidget):
         label_have_account = QLabel("이미 계정이 있으신가요?")
         label_have_account.setFont(QFont("Arial", 10))
         hbox.addWidget(label_have_account)
-        link_login = QLabel("<a href='#' style='color:#2563eb;text-decoration:none;'>로그인</a>")
+        link_login = QLabel(
+            "<a href='#' style='color:#2563eb;text-decoration:none;'>로그인</a>"
+        )
         link_login.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         link_login.setTextFormat(Qt.TextFormat.RichText)
         link_login.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -292,11 +322,13 @@ class RegisterWidget(QWidget):
         outer_layout.addWidget(card)
         outer_layout.addStretch(1)
         self.setLayout(outer_layout)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QWidget {
                 background: #f6f8fb;
             }
-        """)
+        """
+        )
 
     def try_register(self):
         email = self.email.text().strip()
@@ -308,31 +340,35 @@ class RegisterWidget(QWidget):
         try:
             resp = api_client.register(email, password, name)
             if resp.get("success"):
-                QMessageBox.information(self, "회원가입 성공", "회원가입이 완료되었습니다. 로그인 해주세요.")
+                QMessageBox.information(
+                    self, "회원가입 성공", "회원가입이 완료되었습니다. 로그인 해주세요."
+                )
                 self.switch_to_login()
             else:
                 msg = resp.get("message") or resp.get("detail") or "회원가입 실패"
                 if isinstance(msg, list):
-                    msg = "\n".join(
-                        item.get("msg", str(item)) for item in msg
-                    )
+                    msg = "\n".join(item.get("msg", str(item)) for item in msg)
                 QMessageBox.warning(self, "회원가입 실패", msg)
         except Exception as e:
             QMessageBox.critical(self, "오류", f"서버 오류: {e}")
 
     def clear_fields(self):
-        if hasattr(self, 'email') and self.email:
+        if hasattr(self, "email") and self.email:
             self.email.setText("")
-        if hasattr(self, 'password') and self.password:
+        if hasattr(self, "password") and self.password:
             self.password.setText("")
-        if hasattr(self, 'name') and self.name:
+        if hasattr(self, "name") and self.name:
             self.name.setText("")
+
 
 class Badge(QLabel):
     def __init__(self, text, color):
         super().__init__(text)
-        self.setStyleSheet(f"background: {color}; color: white; border-radius: 12px; padding: 3px 14px; font-size: 13px; font-weight: bold; margin-right: 4px;")
+        self.setStyleSheet(
+            f"background: {color}; color: white; border-radius: 12px; padding: 3px 14px; font-size: 13px; font-weight: bold; margin-right: 4px;"
+        )
         self.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+
 
 class TodoItemWidget(QFrame):
     CATEGORY_COLORS = {
@@ -346,12 +382,14 @@ class TodoItemWidget(QFrame):
         "보통": "#f59e42",
         "낮음": "#22c55e",
     }
+
     def __init__(self, todo, refresh_callback):
         super().__init__()
         self.todo = todo
         self.refresh_callback = refresh_callback
         self.setObjectName("TodoCard")
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QFrame#TodoCard {
                 background: #fff;
                 border-radius: 8px;
@@ -365,7 +403,8 @@ class TodoItemWidget(QFrame):
                 background: #f3f6fd;
                 color: black;
             }
-        """)
+        """
+        )
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(18)
         shadow.setOffset(0, 4)
@@ -392,35 +431,45 @@ class TodoItemWidget(QFrame):
         # 메타정보(카테고리, 마감)
         meta_layout = QHBoxLayout()
         meta_layout.setSpacing(10)
-        cat = todo.get('category', '기타')
+        cat = todo.get("category", "기타")
         cat_badge = Badge(cat, self.CATEGORY_COLORS.get(cat, "#64748b"))
         meta_layout.addWidget(cat_badge)
-        duedate = todo.get('duedate', '')
+        duedate = todo.get("duedate", "")
         date_label = QLabel(f"🗓 {duedate}")
-        date_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: bold; margin-left: 8px;")
+        date_label.setStyleSheet(
+            "color: #64748b; font-size: 13px; font-weight: bold; margin-left: 8px;"
+        )
         meta_layout.addWidget(date_label)
         meta_layout.addStretch(1)
         info_layout.addLayout(meta_layout)
         main_layout.addLayout(info_layout, stretch=1)
         # 우선순위 배지 오른쪽 끝
-        prio = todo.get('priority', '보통')
+        prio = todo.get("priority", "보통")
         prio_badge = Badge(prio, self.PRIORITY_COLORS.get(prio, "#f59e42"))
-        main_layout.addWidget(prio_badge, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        main_layout.addWidget(
+            prio_badge,
+            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
         self.setLayout(main_layout)
         # Remove button_bar and related logic
         # self.button_bar = QWidget() ...
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+
     def toggle_done(self, state):
         # API 응답이 완료된 후에만 새로고침 (동기라면 바로, 비동기라면 QTimer로 약간 딜레이)
-        api_client.update_todo(self.todo['id'], done=bool(state))
+        api_client.update_todo(self.todo["id"], done=bool(state))
         from PyQt6.QtCore import QTimer
+
         QTimer.singleShot(150, self.refresh_callback)  # 150ms 후 새로고침
+
     def toggle_done_btn(self):
         self.checkbox.setChecked(not self.checkbox.isChecked())
+
     def show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
-        menu.setStyleSheet("""
+        menu.setStyleSheet(
+            """
             QMenu {
                 background-color: white;
                 color: black; /* 기본 텍스트 색 */
@@ -433,7 +482,8 @@ class TodoItemWidget(QFrame):
                 background-color: #e0e0e0;
                 color: black; /* 호버 시 텍스트 색 */
             }
-        """)
+        """
+        )
         edit_action = menu.addAction("수정")
         delete_action = menu.addAction("삭제")
         action = menu.exec(self.mapToGlobal(pos))
@@ -441,15 +491,20 @@ class TodoItemWidget(QFrame):
             self.edit_todo_custom()
         elif action == delete_action:
             self.delete_todo()
+
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
+
     def edit_todo(self):
-        new_title, ok = QInputDialog.getText(self, "할일 수정", "새 제목:", text=self.todo.get('title', ''))
+        new_title, ok = QInputDialog.getText(
+            self, "할일 수정", "새 제목:", text=self.todo.get("title", "")
+        )
         if ok and new_title.strip():
-            api_client.update_todo(self.todo['id'], title=new_title.strip())
+            api_client.update_todo(self.todo["id"], title=new_title.strip())
             self.refresh_callback()
+
     def delete_todo(self):
-        api_client.delete_todo(self.todo['id'])
+        api_client.delete_todo(self.todo["id"])
         self.refresh_callback()
 
     def edit_todo_custom(self):
@@ -461,13 +516,16 @@ class TodoItemWidget(QFrame):
                 break
             parent = parent.parent()
 
+
 class TodoListWidget(QWidget):
     def __init__(self, stats_callback=None):
         super().__init__()
         self.stats_callback = stats_callback
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea {border: none; background: #f8fafc;} QScrollBar:vertical {width: 12px; background: #e5e7eb; border-radius: 6px;} QScrollBar::handle:vertical {background: #2563eb; border-radius: 6px;}")
+        scroll.setStyleSheet(
+            "QScrollArea {border: none; background: #f8fafc;} QScrollBar:vertical {width: 12px; background: #e5e7eb; border-radius: 6px;} QScrollBar::handle:vertical {background: #2563eb; border-radius: 6px;}"
+        )
         content = QWidget()
         self.layout = QVBoxLayout(content)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -499,17 +557,19 @@ class TodoListWidget(QWidget):
             params["done"] = True
         elif self._filter == "not_done":
             params["done"] = False
-        elif self._filter in ("업무", "개인", "학습","기타"):
+        elif self._filter in ("업무", "개인", "학습", "기타"):
             params["category"] = self._filter
         if self._search:
             params["search"] = self._search
         resp = api_client.list_todos(**params)
-        todos = resp.get('data', {}).get('todos', []) if resp.get('success') else []
+        todos = resp.get("data", {}).get("todos", []) if resp.get("success") else []
         priority_order = {"높음": 1, "보통": 2, "낮음": 3}
 
         sorted_todos = sorted(todos, key=lambda x: priority_order[x["priority"]])
         if not sorted_todos:
-            empty_label = QLabel("<div style='font-size:40px;text-align:center;'>📋</div><div>할일이 없습니다!<br>새로운 할일을 추가해보세요.</div>")
+            empty_label = QLabel(
+                "<div style='font-size:40px;text-align:center;'>📋</div><div>할일이 없습니다!<br>새로운 할일을 추가해보세요.</div>"
+            )
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("color: #888; font-size: 18px; margin: 40px 0;")
             empty_label.setTextFormat(Qt.TextFormat.RichText)
@@ -522,6 +582,7 @@ class TodoListWidget(QWidget):
         # 현황 콜백
         if self.stats_callback is not None:
             self.stats_callback(todos)
+
 
 class TodoAddWidget(QWidget):
     def __init__(self, on_add_callback):
@@ -537,7 +598,9 @@ class TodoAddWidget(QWidget):
         self.title_label = QLabel("새 할일 추가")
         self.title_label.setStyleSheet("font-size: 18px;")
         top_layout.addWidget(self.title_label, alignment=Qt.AlignmentFlag.AlignLeft)
-        required_label = QLabel('<span style="color:#e74c3c;font-size:15px;font-weight:bold;">*</span> <span style="color:#888;font-size:13px;">필수 입력사항</span>')
+        required_label = QLabel(
+            '<span style="color:#e74c3c;font-size:15px;font-weight:bold;">*</span> <span style="color:#888;font-size:13px;">필수 입력사항</span>'
+        )
         required_label.setTextFormat(Qt.TextFormat.RichText)
         top_layout.addStretch(1)
         top_layout.addWidget(required_label, alignment=Qt.AlignmentFlag.AlignRight)
@@ -600,7 +663,9 @@ class TodoAddWidget(QWidget):
         self.category_input.setStyleSheet(style)
         layout.addWidget(self.category_input)
         # 우선순위
-        prio_label = QLabel('<span>우선순위 <span style="color:#e74c3c">*</span></span>')
+        prio_label = QLabel(
+            '<span>우선순위 <span style="color:#e74c3c">*</span></span>'
+        )
         prio_label.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(prio_label)
         self.priority_input = QComboBox()
@@ -642,12 +707,16 @@ class TodoAddWidget(QWidget):
         layout.addWidget(self.due_input)
         # 추가/수정 버튼
         self.add_btn = QPushButton("할일 추가")
-        self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.add_btn.setStyleSheet(
+            "background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;"
+        )
         self.add_btn.clicked.connect(self.on_btn_clicked)
         layout.addWidget(self.add_btn)
         # 수정중 상태 취소 버튼 (초기에는 숨김)
         self.cancel_btn = QPushButton("수정중 상태 취소")
-        self.cancel_btn.setStyleSheet("background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;")
+        self.cancel_btn.setStyleSheet(
+            "background:#e5e7eb;color:#222;border-radius:8px;padding:8px 0;font-weight:bold;font-size:15px;"
+        )
         self.cancel_btn.clicked.connect(self.reset_mode)
         self.cancel_btn.setVisible(False)
         layout.addWidget(self.cancel_btn)
@@ -680,7 +749,9 @@ class TodoAddWidget(QWidget):
             except Exception:
                 pass
         self.add_btn.setText("할일 수정하기")
-        self.add_btn.setStyleSheet("background:#2563eb;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.add_btn.setStyleSheet(
+            "background:#2563eb;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;"
+        )
         self.cancel_btn.setVisible(True)
 
     def reset_mode(self):
@@ -692,7 +763,9 @@ class TodoAddWidget(QWidget):
         self.priority_input.setCurrentIndex(0)
         self.due_input.setDate(QDate.currentDate())
         self.add_btn.setText("할일 추가")
-        self.add_btn.setStyleSheet("background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;")
+        self.add_btn.setStyleSheet(
+            "background:#22c55e;color:white;border-radius:8px;padding:10px 0;font-weight:bold;font-size:16px;"
+        )
         self.cancel_btn.setVisible(False)
 
     def add_todo(self):
@@ -724,7 +797,14 @@ class TodoAddWidget(QWidget):
         if not title or not desc:
             QMessageBox.warning(self, "입력 오류", "제목과 설명을 모두 입력하세요.")
             return
-        resp = api_client.update_todo(self.edit_todo_id, title=title, description=desc, category=category, duedate=duedate, priority=priority)
+        resp = api_client.update_todo(
+            self.edit_todo_id,
+            title=title,
+            description=desc,
+            category=category,
+            duedate=duedate,
+            priority=priority,
+        )
         if resp.get("success"):
             QMessageBox.information(self, "수정 완료", "할일이 수정되었습니다.")
             self.reset_mode()
@@ -734,6 +814,7 @@ class TodoAddWidget(QWidget):
             if isinstance(msg, list):
                 msg = "\n".join(item.get("msg", str(item)) for item in msg)
             QMessageBox.warning(self, "수정 실패", msg)
+
 
 class TodoStatsWidget(QWidget):
     def __init__(self):
@@ -746,7 +827,9 @@ class TodoStatsWidget(QWidget):
         layout.addWidget(title)
         # 총 할일
         stat_total = QHBoxLayout()
-        icon_total = QLabel("<img src='https://img.icons8.com/ios-filled/20/000000/todo-list.png'/>")
+        icon_total = QLabel(
+            "<img src='https://img.icons8.com/ios-filled/20/000000/todo-list.png'/>"
+        )
         stat_total.addWidget(icon_total)
         self.total_label = QLabel("0")
         self.total_label.setStyleSheet("color:#2563eb;font-size:22px;font-weight:bold;")
@@ -756,7 +839,9 @@ class TodoStatsWidget(QWidget):
         layout.addLayout(stat_total)
         # 완료
         stat_done = QHBoxLayout()
-        icon_done = QLabel("<img src='https://img.icons8.com/ios-filled/20/22c55e/checked-checkbox.png'/>")
+        icon_done = QLabel(
+            "<img src='https://img.icons8.com/ios-filled/20/22c55e/checked-checkbox.png'/>"
+        )
         stat_done.addWidget(icon_done)
         self.done_label = QLabel("0")
         self.done_label.setStyleSheet("color:#22c55e;font-size:22px;font-weight:bold;")
@@ -766,7 +851,9 @@ class TodoStatsWidget(QWidget):
         layout.addLayout(stat_done)
         # 대기
         stat_wait = QHBoxLayout()
-        icon_wait = QLabel("<img src='https://img.icons8.com/ios-filled/20/f59e42/hourglass.png'/>")
+        icon_wait = QLabel(
+            "<img src='https://img.icons8.com/ios-filled/20/f59e42/hourglass.png'/>"
+        )
         stat_wait.addWidget(icon_wait)
         self.wait_label = QLabel("0")
         self.wait_label.setStyleSheet("color:#f59e42;font-size:22px;font-weight:bold;")
@@ -778,7 +865,8 @@ class TodoStatsWidget(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedHeight(18)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setStyleSheet("""
+        self.progress_bar.setStyleSheet(
+            """
         QProgressBar {
             border-radius: 8px;
             background: #e5e7eb;  /* 연한 회색 배경 */
@@ -790,7 +878,8 @@ class TodoStatsWidget(QWidget):
             background: #32CD32;  /* 진한 연두색 (LimeGreen) */
             border-radius: 8px;
         }
-""")
+"""
+        )
 
         layout.addWidget(self.progress_bar)
         self.setLayout(layout)
@@ -803,6 +892,7 @@ class TodoStatsWidget(QWidget):
         percent = int((done / total) * 100) if total > 0 else 0
         self.progress_bar.setValue(percent)
         self.progress_bar.setFormat(f"{percent}% 완료")
+
 
 class TodoSidebar(QFrame):
     def __init__(self, on_todo_added=None):
@@ -817,11 +907,15 @@ class TodoSidebar(QFrame):
         layout.addWidget(self.stats_widget)
         # 로그아웃/탈퇴 버튼
         self.logout_btn = QPushButton("로그아웃")
-        self.logout_btn.setStyleSheet("background:#e5e7eb;color:gray;font-weight:bold; padding:12px 0;font-size:15px;margin-top:16px;")
+        self.logout_btn.setStyleSheet(
+            "background:#e5e7eb;color:gray;font-weight:bold; padding:12px 0;font-size:15px;margin-top:16px;"
+        )
         self.logout_btn.clicked.connect(self.show_logout_dialog)
         layout.addWidget(self.logout_btn)
         self.withdraw_btn = QPushButton("회원탈퇴")
-        self.withdraw_btn.setStyleSheet("background:#e74c3c;color:#fff0f0;font-weight:bold; padding:12px 0; font-size:15px;margin-top:8px;")
+        self.withdraw_btn.setStyleSheet(
+            "background:#e74c3c;color:#fff0f0;font-weight:bold; padding:12px 0; font-size:15px;margin-top:8px;"
+        )
         self.withdraw_btn.clicked.connect(self.show_withdraw_dialog)
         layout.addWidget(self.withdraw_btn)
         layout.addStretch(1)
@@ -839,6 +933,7 @@ class TodoSidebar(QFrame):
 
     def fetch_user_info(self):
         from api_client import load_token
+
         if not load_token():
             return  # 로그인 전이면 아무것도 하지 않음
         try:
@@ -872,6 +967,7 @@ class TodoSidebar(QFrame):
             if hasattr(mw, "withdraw"):
                 mw.withdraw()
 
+
 class TodoMainFrame(QWidget):
     def __init__(self):
         super().__init__()
@@ -887,7 +983,9 @@ class TodoMainFrame(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("제목으로 검색...")
         self.search_input.setFixedWidth(220)
-        self.search_input.setStyleSheet("border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; font-size: 15px;")
+        self.search_input.setStyleSheet(
+            "border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; font-size: 15px;"
+        )
         self.search_input.textChanged.connect(self.on_search)
         top_layout.addWidget(self.search_input, alignment=Qt.AlignmentFlag.AlignVCenter)
         layout.addLayout(top_layout)
@@ -908,7 +1006,9 @@ class TodoMainFrame(QWidget):
         for label, key in filter_names:
             btn = QPushButton(label)
             btn.setCheckable(True)
-            btn.setStyleSheet("QPushButton {padding:3px 10px; min-width: 0; min-height: 0; font-size: 13px; border-radius:6px;} QPushButton:checked {background:#2563eb;color:white;}")
+            btn.setStyleSheet(
+                "QPushButton {padding:3px 10px; min-width: 0; min-height: 0; font-size: 13px; border-radius:6px;} QPushButton:checked {background:#2563eb;color:white;}"
+            )
             self.filter_group.addButton(btn)
             self.filter_buttons[key] = btn
             filter_layout.addWidget(btn)
@@ -929,6 +1029,7 @@ class TodoMainFrame(QWidget):
 
     def paintEvent(self, event):
         from PyQt6.QtGui import QPainter
+
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor("white"))
         super().paintEvent(event)
@@ -949,15 +1050,16 @@ class TodoMainFrame(QWidget):
 
     def update_stats_from_list(self, todos):
         total = len(todos)
-        done = sum(1 for t in todos if t.get('done'))
+        done = sum(1 for t in todos if t.get("done"))
         wait = total - done
         # TodoSidebar 인스턴스 찾아서 update_stats 호출
         parent = self.parent()
         while parent is not None:
-            if hasattr(parent, 'sidebar'):
+            if hasattr(parent, "sidebar"):
                 parent.sidebar.update_stats(total, done, wait)
                 break
             parent = parent.parent()
+
 
 # 전체 배경 QSS
 class TodoMainPage(QWidget):
@@ -968,13 +1070,16 @@ class TodoMainPage(QWidget):
         main_layout.setSpacing(16)
         # 할일 추가 시 목록 새로고침 콜백 연결
         self.main_frame = TodoMainFrame()
-        self.sidebar = TodoSidebar(on_todo_added=self.main_frame.refresh_with_current_filter)
+        self.sidebar = TodoSidebar(
+            on_todo_added=self.main_frame.refresh_with_current_filter
+        )
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.main_frame, stretch=1)
         self.setLayout(main_layout)
 
     def set_edit_mode(self, todo):
         self.sidebar.set_edit_mode(todo)
+
 
 class LogoutDialog(QDialog):
     def __init__(self, user_name, user_email, parent=None):
@@ -1000,8 +1105,12 @@ class LogoutDialog(QDialog):
         msg.setStyleSheet("font-size: 15px; margin-bottom: 8px;")
         layout.addWidget(msg)
         # 유저 정보 카드
-        user_card = QLabel(f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>")
-        user_card.setStyleSheet("background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;")
+        user_card = QLabel(
+            f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>"
+        )
+        user_card.setStyleSheet(
+            "background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;"
+        )
         layout.addWidget(user_card)
         # 안내문구
         info1 = QLabel("로그아웃하면 현재 세션이 종료됩니다.")
@@ -1013,7 +1122,8 @@ class LogoutDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("""
+        btn_cancel.setStyleSheet(
+            """
             QPushButton {
                 background: #f6f8fb;
                 color: #222;
@@ -1027,9 +1137,11 @@ class LogoutDialog(QDialog):
             QPushButton:hover {
                 background: #e5e7eb;
             }
-        """)
+        """
+        )
         btn_ok = QPushButton("로그아웃")
-        btn_ok.setStyleSheet("""
+        btn_ok.setStyleSheet(
+            """
             QPushButton {
                 background: #222;
                 color: white;
@@ -1042,13 +1154,15 @@ class LogoutDialog(QDialog):
             QPushButton:hover {
                 background: #111;
             }
-        """)
+        """
+        )
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
         self.setLayout(layout)
+
 
 class WithdrawDialog(QDialog):
     def __init__(self, user_name, user_email, parent=None):
@@ -1074,21 +1188,28 @@ class WithdrawDialog(QDialog):
         msg.setStyleSheet("font-size: 15px; margin-bottom: 8px;")
         layout.addWidget(msg)
         # 유저 정보 카드
-        user_card = QLabel(f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>")
-        user_card.setStyleSheet("background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;")
+        user_card = QLabel(
+            f"<b>{user_name}님</b><br><span style='color:#888'>{user_email}</span>"
+        )
+        user_card.setStyleSheet(
+            "background:#f6f8fb;border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:8px;border:1.5px solid #e5e7eb;"
+        )
         layout.addWidget(user_card)
         # 주의사항
-        warn = QLabel("""
+        warn = QLabel(
+            """
         <div style='background:#fff0f0;border:2px solid #e74c3c;padding:10px 14px;border-radius:8px;margin:8px 0;'>
         <b style='color:#e74c3c;'>⚠️ 주의사항</b><br>
         <span style='color:#e74c3c;'>탈퇴 후 계정은 복구할 수 없습니다.<br>
         모든 데이터가 영구적으로 삭제됩니다.</span>
         </div>
-        """)
+        """
+        )
         warn.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(warn)
         # 삭제 정보 리스트
-        info = QLabel("""
+        info = QLabel(
+            """
         <div style='margin:8px 0 0 0;'>
         <b>회원탈퇴 시 다음 정보들이 모두 삭제됩니다:</b><br>
         <ul style='margin:0 0 0 16px;'>
@@ -1098,7 +1219,8 @@ class WithdrawDialog(QDialog):
         <li>구매 내역 및 결제 정보</li>
         </ul>
         </div>
-        """)
+        """
+        )
         info.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(info)
         # 체크박스
@@ -1107,7 +1229,8 @@ class WithdrawDialog(QDialog):
         # 버튼
         btns = QDialogButtonBox()
         btn_cancel = QPushButton("취소")
-        btn_cancel.setStyleSheet("""
+        btn_cancel.setStyleSheet(
+            """
             QPushButton {
                 background: #f6f8fb;
                 color: #222;
@@ -1121,9 +1244,11 @@ class WithdrawDialog(QDialog):
             QPushButton:hover {
                 background: #e5e7eb;
             }
-        """)
+        """
+        )
         self.btn_ok = QPushButton("탈퇴하기")
-        self.btn_ok.setStyleSheet("""
+        self.btn_ok.setStyleSheet(
+            """
             QPushButton {
                 background: #e74c3c;
                 color: white;
@@ -1136,7 +1261,8 @@ class WithdrawDialog(QDialog):
             QPushButton:hover {
                 background: #c0392b;
             }
-        """)
+        """
+        )
         self.btn_ok.setEnabled(False)
         btns.addButton(btn_cancel, QDialogButtonBox.ButtonRole.RejectRole)
         btns.addButton(self.btn_ok, QDialogButtonBox.ButtonRole.AcceptRole)
@@ -1145,21 +1271,23 @@ class WithdrawDialog(QDialog):
         layout.addWidget(btns)
         self.setLayout(layout)
         self.agree_chk.stateChanged.connect(self.on_check)
+
     def on_check(self, state):
         self.btn_ok.setEnabled(self.agree_chk.isChecked())
+
 
 # MainWindow의 _main_content_widget을 TodoMainPage로 교체
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("로그인/회원가입 예제")
+        self.setWindowTitle("Smart Task Manager")
         self.stack = QStackedWidget()
         self.login_widget = LoginWidget(self.show_main, self.show_register)
         self.register_widget = RegisterWidget(self.show_login)
         self.main_widget = self._main_content_widget()
-        self.stack.addWidget(self.login_widget)      # index 0
-        self.stack.addWidget(self.register_widget)   # index 1
-        self.stack.addWidget(self.main_widget)       # index 2
+        self.stack.addWidget(self.login_widget)  # index 0
+        self.stack.addWidget(self.register_widget)  # index 1
+        self.stack.addWidget(self.main_widget)  # index 2
         self.setCentralWidget(self.stack)
         self.resize(1200, 800)
         self.show_login()
@@ -1167,8 +1295,10 @@ class MainWindow(QMainWindow):
     def show_login(self):
         self.login_widget.clear_fields()
         self.stack.setCurrentIndex(0)
-        if hasattr(self.main_widget, 'main_frame') and hasattr(self.main_widget.main_frame, 'todo_list'):
-            self.main_widget.main_frame.todo_list.set_filter('all', '')
+        if hasattr(self.main_widget, "main_frame") and hasattr(
+            self.main_widget.main_frame, "todo_list"
+        ):
+            self.main_widget.main_frame.todo_list.set_filter("all", "")
 
     def show_register(self):
         self.register_widget.clear_fields()
@@ -1176,9 +1306,11 @@ class MainWindow(QMainWindow):
 
     def show_main(self):
         self.stack.setCurrentIndex(2)
-        if hasattr(self.main_widget, 'main_frame') and hasattr(self.main_widget.main_frame, 'todo_list'):
-            self.main_widget.main_frame.todo_list.set_filter('all', '')
-        if hasattr(self.main_widget, 'sidebar'):
+        if hasattr(self.main_widget, "main_frame") and hasattr(
+            self.main_widget.main_frame, "todo_list"
+        ):
+            self.main_widget.main_frame.todo_list.set_filter("all", "")
+        if hasattr(self.main_widget, "sidebar"):
             self.main_widget.sidebar.fetch_user_info()
 
     def _main_content_widget(self):
@@ -1191,6 +1323,7 @@ class MainWindow(QMainWindow):
     def withdraw(self):
         api_client.withdraw()
         self.show_login()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
