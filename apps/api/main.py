@@ -1,24 +1,12 @@
 import datetime
+from typing import Optional
 
+import database as db
 import schemas
-from fastapi import Depends, FastAPI, HTTPException, status, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.security import HTTPBearer
 from mysql.connector.connection import MySQLConnection
-from backend.database import (
-    add_todo_into_database,
-    delete_todo_from_database,
-    delete_user,
-    get_current_user,
-    get_db_connection,
-    get_todo_from_database,
-    get_total_todos_from_datbase,
-    insert_user,
-    put_todo_from_database,
-    select_user_by_email_and_password,
-    toggle_todo_from_database,
-)
 from utils import create_access_token
-from typing import Optional
 
 app = FastAPI()
 
@@ -38,7 +26,7 @@ security = HTTPBearer()
     },
 )
 def login(
-    request: schemas.LoginRequest, cnx: MySQLConnection = Depends(get_db_connection)
+    request: schemas.LoginRequest, cnx: MySQLConnection = Depends(db.get_db_connection)
 ):
     try:
         email = request.email
@@ -52,7 +40,7 @@ def login(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="비밀번호를 입력해주세요",
             )
-        user = select_user_by_email_and_password(email, password, cnx)
+        user = db.select_user_by_email_and_password(email, password, cnx)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -90,7 +78,8 @@ def login(
     },
 )
 def register(
-    request: schemas.RegisterRequest, cnx: MySQLConnection = Depends(get_db_connection)
+    request: schemas.RegisterRequest,
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
         email = request.email
@@ -109,7 +98,7 @@ def register(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="이름을 입력해주세요"
             )
-        user_id = insert_user(email, password, name, cnx)
+        user_id = db.insert_user(email, password, name, cnx)
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -162,11 +151,11 @@ def logout():
     },
 )
 def withdraw(
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        delete_user(current_user.id, cnx)
+        db.delete_user(current_user.id, cnx)
         return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
     except HTTPException:
         raise
@@ -187,7 +176,7 @@ def withdraw(
         500: {"model": schemas.ErrorResponse, "description": "DB 연결 실패"},
     },
 )
-def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
+def info_me(current_user: schemas.PublicUser = Depends(db.get_current_user)):
     try:
         return schemas.MeResponse(
             success=True, message="유저 본인정보 조회 성공", data=current_user
@@ -210,8 +199,8 @@ def info_me(current_user: schemas.PublicUser = Depends(get_current_user)):
 )
 def add_todo(
     todo: schemas.TodoCreateRequest,
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
         if (
@@ -225,7 +214,7 @@ def add_todo(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="할일 내용을 입력해주세요.",
             )
-        todo_id = add_todo_into_database(todo, current_user.id, cnx)
+        todo_id = db.add_todo_into_database(todo, current_user.id, cnx)
         if not todo_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -267,17 +256,31 @@ def get_todos(
     done: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todos_raw = get_total_todos_from_datbase(
-            current_user.id, cnx, done=done, category=category, search=search
-        ) or []
+        todos_raw = (
+            db.get_total_todos_from_datbase(
+                current_user.id, cnx, done=done, category=category, search=search
+            )
+            or []
+        )
+
         todos = []
         for todo in todos_raw:
-            todo["done"] = bool(todo["done"])
-            todos.append(schemas.Todo(**todo))
+            todo_dict = {
+                "id": todo["todo_id"],
+                "title": todo["todo_title"],
+                "description": todo["todo_dtl"],
+                "category": todo["ctgy"],
+                "priority": todo["priority_lvl"],
+                "duedate": todo["due_dt"],
+                "done": bool(todo["yn_done"]),
+                "created_at": todo["created_dt"],
+                "user_id": todo["usr_id"],
+            }
+            todos.append(schemas.Todo(**todo_dict))
         return schemas.TodoListResponse(
             success=True,
             message="할일 목록조회 성공",
@@ -307,20 +310,19 @@ def get_todos(
 )
 def get_todo(
     todo_id: int,
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todo = get_todo_from_database(current_user.id, todo_id, cnx)
+        todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
         if not todo:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="조회한 할일이 업습니다."
             )
-        todo["done"] = bool(todo["done"])
         return schemas.TodoResponse(
             success=True,
             message=f"{todo_id}번째 할일 조회 성공",
-            data=schemas.Todo(**todo),
+            data=todo,
         )
     except HTTPException:
         raise
@@ -345,12 +347,12 @@ def get_todo(
 def modify_todo(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
         # 1. 존재하지 않는 할일 ID 확인
-        existing_todo = get_todo_from_database(current_user.id, todo_id, cnx)
+        existing_todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
         if not existing_todo:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -389,15 +391,19 @@ def modify_todo(
                 detail="done 값은 boolean이어야 합니다.",
             )
         # 3. DB 수정
-        modified_todo = put_todo_from_database(current_user.id, todo_id, todo, cnx)
+        print("before", current_user)
+        print("before", todo_id)
+        print("befoere", todo)
+        modified_todo = db.put_todo_from_database(current_user.id, todo_id, todo, cnx)
         if not modified_todo:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="할일이 존재하지 않습니다.",
             )
-        modified_todo["done"] = bool(modified_todo["done"])
+        print("modified_todo", modified_todo)
+        print("modified_todo", type(modified_todo))
         return schemas.TodoUpdateResponse(
-            success=True, message="수정 성공", data=schemas.Todo(**modified_todo)
+            success=True, message="수정 성공", data=modified_todo
         )
     except HTTPException:
         raise
@@ -420,11 +426,11 @@ def modify_todo(
 )
 def delete_todo(
     todo_id: int,
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        result = delete_todo_from_database(current_user.id, todo_id, cnx)
+        result = db.delete_todo_from_database(current_user.id, todo_id, cnx)
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -454,17 +460,17 @@ def delete_todo(
 )
 def toggle_todo(
     todo_id: int,
-    current_user: schemas.PublicUser = Depends(get_current_user),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        updated_todo = toggle_todo_from_database(current_user.id, todo_id, cnx)
+        updated_todo = db.toggle_todo_from_database(current_user.id, todo_id, cnx)
         if not updated_todo:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="할일이 존재하지 않습니다.",
             )
-        updated_todo["done"] = bool(updated_todo["done"])
+        updated_todo["yn_done"] = bool(updated_todo["yn_done"])
         return schemas.ToggleResponse(
             success=True,
             message=f"할일 상태가 {updated_todo['done']}로 변경되었습니다.",

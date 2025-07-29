@@ -1,4 +1,4 @@
-from typing import Any, Generator, Optional
+from typing import Any, Generator, Optional, cast
 
 import mysql.connector
 import schemas
@@ -121,7 +121,7 @@ def add_todo_into_database(
 ):
     with cnx.cursor(dictionary=True) as cursor:
         sql = """
-            INSERT INTO todo (title_title, todo_dtl, ctgy, priority_lvl, due_dt, usr_id)
+            INSERT INTO todo (todo_title, todo_dtl, ctgy, priority_lvl, due_dt, usr_id)
             VALUES (%s, %s, %s, %s, %s, %s)
         """
         cursor.execute(
@@ -151,7 +151,7 @@ def get_total_todos_from_datbase(
         sql = "SELECT * FROM todo WHERE usr_id = %s"
         params = [user_id]
         if done is not None:
-            sql += " AND done = %s"
+            sql += " AND yn_done = %s"
             params.append(1 if done else 0)
         if category is not None:
             sql += " AND ctgy = %s"
@@ -165,30 +165,80 @@ def get_total_todos_from_datbase(
             return rows
 
 
-def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
+def get_todo_from_database(
+    user_id: int, todo_id: int, cnx: MySQLConnection
+) -> schemas.Todo | None:
     with cnx.cursor(dictionary=True) as cursor:
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
-        row = cursor.fetchone()
-        if row:
-            return row
+        raw_row = cursor.fetchone()
+        if raw_row is None:
+            return None
+        row = cast(dict[str, Any], raw_row)
+        print("get_todo_from_database", row)
+        return schemas.Todo(
+            id=row["todo_id"],
+            title=row["todo_title"],
+            description=row["todo_dtl"],
+            done=bool(row["yn_done"]),
+            category=row["ctgy"],
+            priority=row["priority_lvl"],
+            duedate=row["due_dt"],
+            created_at=row["created_dt"],
+        )
 
 
 def put_todo_from_database(
     user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: MySQLConnection
-):
+) -> schemas.Todo | None:
     update_todo = todo.model_dump(exclude_unset=True)
+
+    key_mapping = {
+        "title": "todo_title",
+        "description": "todo_dtl",
+        "category": "ctgy",
+        "duedate": "due_dt",
+        "priority": "priority_lvl",
+        "done": "yn_done",
+    }
+
+    update_todo_db = {}
+    for key, value in update_todo.items():
+        db_key = key_mapping.get(key)
+        if db_key:
+            update_todo_db[db_key] = value
+        else:
+            # 매핑 없는 키는 필요에 따라 넣거나 무시
+            update_todo_db[key] = value
+
+    if not update_todo_db:
+        return None
+
     with cnx.cursor(dictionary=True) as cursor:
-        set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
+        set_clause = ", ".join(f"{col} = %s" for col in update_todo_db.keys())
         sql = f"UPDATE todo SET {set_clause} WHERE usr_id = %s AND todo_id = %s"
-        values = list(update_todo.values()) + [user_id, todo_id]
+        values = list(update_todo_db.values()) + [user_id, todo_id]
         cursor.execute(sql, values)
         cnx.commit()
 
-        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
-        cursor.execute(sql, (user_id, todo_id))
-        row = cursor.fetchone()
-        return row
+        cursor.execute(
+            "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s",
+            (user_id, todo_id),
+        )
+        raw_row = cursor.fetchone()
+        if raw_row is None:
+            return None
+        row = cast(dict[str, Any], raw_row)
+        return schemas.Todo(
+            id=row["todo_id"],
+            title=row["todo_title"],
+            description=row["todo_dtl"],
+            done=bool(row["yn_done"]),
+            category=row["ctgy"],
+            priority=row["priority_lvl"],
+            duedate=row["due_dt"],
+            created_at=row["created_dt"],
+        )
 
 
 def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
