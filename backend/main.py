@@ -4,7 +4,7 @@ import schemas
 from fastapi import Depends, FastAPI, HTTPException, status, Query
 from fastapi.security import HTTPBearer
 from mysql.connector.connection import MySQLConnection
-from mysql_connection import (
+from backend.database import (
     add_todo_into_database,
     delete_todo_from_database,
     delete_user,
