@@ -251,4 +251,3 @@ pyinstaller --noconfirm --noconsole --onefile --name smarttaskmanager --icon=./a
   * open ${경로}/dist/smarttaskmanager.app 로 터미널에서도 실행이 가능합니다.
   * smarttaskmanager 또는 smarttaskmanager.exe 또는 smarttaskmanager.app 파일을 더블 클릭으로 실행 가능합니다.
 * macOS `.app`은 압축하지 않고 공유하면 손상되니, 반드시 `.zip`으로 압축 후 전달해야 합니다.
-

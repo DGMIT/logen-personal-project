@@ -10,7 +10,6 @@ from utils import (
     decode_jwt_token,
     extract_user_info_from_payload,
     get_password_hash,
-    rows_to_dict,
     verify_password,
 )
 
@@ -46,58 +45,6 @@ def get_current_user(
     return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
 
 
-# database.py
-def ensure_tables_exist(cnx: Any):
-    cursor = cnx.cursor()
-    cursor.execute(
-        """
-        SELECT table_name FROM information_schema.tables
-        WHERE table_schema = DATABASE() AND table_name IN ('user', 'todo');
-    """
-    )
-    existing_tables = {row[0] for row in cursor.fetchall()}
-
-    if "user" not in existing_tables:
-        cursor.execute(
-            """
-            CREATE TABLE user (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(50) NOT NULL,
-                email VARCHAR(100) NOT NULL UNIQUE,
-                password VARCHAR(255) NOT NULL
-            );
-        """
-        )
-
-    if "todo" not in existing_tables:
-        cursor.execute(
-            """
-            CREATE TABLE todo (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(100) NOT NULL,
-                description TEXT,
-                done TINYINT(1) DEFAULT 0,
-                category ENUM('업무', '개인', '학습', '기타') DEFAULT '기타',
-                priority ENUM('낮음', '보통', '높음') DEFAULT '보통',
-                duedate DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                user_id INT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-            );
-        """
-        )
-        # 인덱스 생성
-        cursor.execute("CREATE INDEX idx_todo_user_id ON todo(user_id);")
-        cursor.execute("CREATE INDEX idx_todo_duedate ON todo(duedate);")
-        cursor.execute("CREATE INDEX idx_todo_done ON todo(done);")
-        cursor.execute(
-            "CREATE INDEX idx_todo_user_priority ON todo(user_id, priority);"
-        )
-
-    cnx.commit()
-    cursor.close()
-
-
 def get_connection(config: Any):
     try:
         cnx = mysql.connector.connect(**config)
@@ -114,12 +61,12 @@ def get_connection(config: Any):
 
 def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
     with cnx.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM user WHERE email = %s", (email,))
+        cursor.execute("SELECT COUNT(*) FROM usr WHERE email = %s", (email,))
         count = cursor.fetchone()[0]
         if count > 0:
             return False
         hashed_password = get_password_hash(password)
-        sql = "INSERT INTO user (email, password, name) VALUES (%s, %s, %s)"
+        sql = "INSERT INTO usr (email, pwd, usr_nm) VALUES (%s, %s, %s)"
         cursor.execute(sql, (email, hashed_password, name))
         user_id = cursor.lastrowid
         cnx.commit()
@@ -128,7 +75,7 @@ def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
 
 def delete_user(user_id: int, cnx: Any):
     with cnx.cursor() as cursor:
-        cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
+        cursor.execute("DELETE FROM usr WHERE usr_id = %s", (user_id,))
         affected = cursor.rowcount
         cnx.commit()
         if affected == 0:
@@ -141,7 +88,7 @@ def delete_user(user_id: int, cnx: Any):
 
 def select_user_by_email(email: str, cnx: Any):
     with cnx.cursor() as cursor:
-        sql = "SELECT *  FROM user WHERE email = %s"
+        sql = "SELECT *  FROM usr WHERE email = %s"
         cursor.execute(sql, (email,))
         result = cursor.fetchone()
         if not result:
@@ -174,7 +121,7 @@ def add_todo_into_database(
 ):
     with cnx.cursor(dictionary=True) as cursor:
         sql = """
-            INSERT INTO todo (title, description, category, priority, duedate, user_id)
+            INSERT INTO todo (title_title, todo_dtl, ctgy, priority_lvl, due_dt, usr_id)
             VALUES (%s, %s, %s, %s, %s, %s)
         """
         cursor.execute(
@@ -193,18 +140,24 @@ def add_todo_into_database(
     return inserted_id
 
 
-def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = None, category: Optional[str] = None, search: Optional[str] = None):
+def get_total_todos_from_datbase(
+    user_id: int,
+    cnx: Any,
+    done: Optional[bool] = None,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+):
     with cnx.cursor(dictionary=True) as cursor:
-        sql = "SELECT * FROM todo WHERE user_id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s"
         params = [user_id]
         if done is not None:
             sql += " AND done = %s"
             params.append(1 if done else 0)
         if category is not None:
-            sql += " AND category = %s"
+            sql += " AND ctgy = %s"
             params.append(category)
         if search is not None and search.strip() != "":
-            sql += " AND title LIKE %s"
+            sql += " AND todo_title LIKE %s"
             params.append(f"%{search}%")
         cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
@@ -214,7 +167,7 @@ def get_total_todos_from_datbase(user_id: int, cnx: Any, done: Optional[bool] = 
 
 def get_todo_from_database(user_id: int, todo_id: int, cnx: MySQLConnection):
     with cnx.cursor(dictionary=True) as cursor:
-        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         if row:
@@ -227,12 +180,12 @@ def put_todo_from_database(
     update_todo = todo.model_dump(exclude_unset=True)
     with cnx.cursor(dictionary=True) as cursor:
         set_clause = ", ".join(f"{col} = %s" for col in update_todo.keys())
-        sql = f"UPDATE todo SET {set_clause} WHERE user_id = %s AND id = %s"
+        sql = f"UPDATE todo SET {set_clause} WHERE usr_id = %s AND todo_id = %s"
         values = list(update_todo.values()) + [user_id, todo_id]
         cursor.execute(sql, values)
         cnx.commit()
 
-        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         return row
@@ -240,10 +193,10 @@ def put_todo_from_database(
 
 def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
     with cnx.cursor() as cursor:
-        sql = "DELETE FROM todo WHERE user_id = %s AND id = %s"
+        sql = "DELETE FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         cnx.commit()
-        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         if row:
@@ -256,17 +209,17 @@ def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
 
 def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
     with cnx.cursor(dictionary=True) as cursor:
-        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="해당 할일을 찾을 수 없습니다.")
-        current_done = row["done"]
+        current_done = row["yn_done"]
         new_done = 0 if current_done else 1
-        sql = "UPDATE todo SET done = %s WHERE user_id = %s AND id = %s"
+        sql = "UPDATE todo SET yn_done = %s WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (new_done, user_id, todo_id))
         cnx.commit()
-        sql = "SELECT * FROM todo WHERE user_id = %s AND id = %s"
+        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
         return updated_row
