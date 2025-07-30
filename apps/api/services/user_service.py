@@ -28,20 +28,18 @@ def register_service(
     name: str,
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="이메일을 입력해주세요."
-        )
-    if not password:
+    if not (email and password and name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="비밀번호를 입력해주세요",
+            detail="이메일, 비밀번호, 이름을 모두 입력해주세요.",
         )
-    if not name:
+
+    if db.email_exist(email, cnx):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="이름을 입력해주세요"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이미 존재하는 이메일입니다.",
         )
-    user_id = db.insert_user(email, password, name, cnx)
+    user_id = db.create_user(email, password, name, cnx)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

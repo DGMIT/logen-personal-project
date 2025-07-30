@@ -58,18 +58,23 @@ def get_connection(config: Any):
         return None
 
 
-def insert_user(email: str, password: str, name: str, cnx: Any) -> bool:
+def email_exist(email: str, cnx: Any) -> bool:
     with cnx.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM usr WHERE email = %s", (email,))
-        count = cursor.fetchone()[0]
-        if count > 0:
-            return False
+        return cursor.fetchone()[0] > 0
+
+
+def create_user(email: str, password: str, name: str, cnx: Any) -> Optional[int]:
+    with cnx.cursor() as cursor:
         hashed_password = get_password_hash(password)
         sql = "INSERT INTO usr (email, pwd, usr_nm) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (email, hashed_password, name))
-        user_id = cursor.lastrowid
-        cnx.commit()
-    return user_id
+        try:
+            cursor.execute(sql, (email, hashed_password, name))
+            cnx.commit()
+            return cursor.lastrowid
+        except Exception as e:
+            print("DB 유저 삽입 에러", e)
+            return None
 
 
 def delete_user(user_id: int, cnx: Any):
