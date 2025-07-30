@@ -94,33 +94,12 @@ def select_user_by_email(email: str, cnx: Any):
     with cnx.cursor() as cursor:
         sql = "SELECT *  FROM usr WHERE email = %s"
         cursor.execute(sql, (email,))
-        user = cursor.fetchone()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="해당 사용자를 찾을 수 없습니다.",
+        row = cursor.fetchone()
+        if row:
+            return schemas.UserInDB(
+                id=row[0], name=row[1], email=row[2], password=row[3]
             )
-        return schemas.User(id=user[0], name=user[1], email=user[2])
-
-
-def select_user_by_email_and_password(email: str, password: str, cnx: Any):
-    with cnx.cursor() as cursor:
-        sql = "SELECT *  FROM usr WHERE email = %s"
-        cursor.execute(sql, (email,))
-        user = cursor.fetchone()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="해당 사용자를 찾을 수 없습니다.",
-            )
-        if not verify_password(password, user[3]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="비밀번호가 올바르지 않습니다. 다시 확인해 주세요.",
-            )
-        return schemas.UserInDB(
-            id=user[0], name=user[1], email=user[2], password=user[3]
-        )
+        return None
 
 
 def add_todo_into_database(
@@ -184,7 +163,6 @@ def get_todo_from_database(
         if raw_row is None:
             return None
         row = cast(dict[str, Any], raw_row)
-        print("get_todo_from_database", row)
         return schemas.Todo(
             id=row["todo_id"],
             title=row["todo_title"],
