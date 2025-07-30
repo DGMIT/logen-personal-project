@@ -6,12 +6,7 @@ from config import config
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mysql.connector import MySQLConnection, errorcode
-from utils import (
-    decode_jwt_token,
-    extract_user_info_from_payload,
-    get_password_hash,
-    verify_password,
-)
+from utils import decode_jwt_token, extract_user_info_from_payload, get_password_hash
 
 security = HTTPBearer()
 
