@@ -181,13 +181,17 @@ CREATE INDEX IF NOT EXISTS idx_todo_usr_priority_lvl ON todo(usr_id, priority_lv
 1. `.env` 파일 생성 (`apps/api` 내부):
 
 ```
+JWT_SECRET_KEY=your_secret_key
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+1.5 '.env' 파일 생성(`apps/infra' 내부):
+```
 DB_HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=1234
 DB_NAME=todo_app
-JWT_SECRET_KEY=your_secret_key
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 2. MariaDB 초기화 및 실행:
