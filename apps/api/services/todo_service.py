@@ -128,3 +128,16 @@ def modify_todo(
             detail="할일이 존재하지 않습니다.",
         )
     return modified_todo
+
+
+def delete_todo(
+    todo_id: int,
+    user_id: int,
+    cnx: MySQLConnection = Depends(db.get_db_connection),
+):
+    result = db.delete_todo_from_database(user_id, todo_id, cnx)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="할일이 존재하지 않습니다.",
+        )

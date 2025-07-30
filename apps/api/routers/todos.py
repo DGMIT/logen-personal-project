@@ -146,12 +146,7 @@ def delete_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        result = db.delete_todo_from_database(current_user.id, todo_id, cnx)
-        if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="할일이 존재하지 않습니다.",
-            )
+        todo_service.delete_todo(todo_id, current_user.id, cnx)
         return schemas.DeleteResponse(
             success=True, message=f"{todo_id}번째 할일 삭제 성공"
         )

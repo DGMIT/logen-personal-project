@@ -242,19 +242,15 @@ def put_todo_from_database(
 
 
 def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
-    with cnx.cursor() as cursor:
-        sql = "DELETE FROM todo WHERE usr_id = %s AND todo_id = %s"
-        cursor.execute(sql, (user_id, todo_id))
-        cnx.commit()
-        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
-        cursor.execute(sql, (user_id, todo_id))
-        row = cursor.fetchone()
-        if row:
-            raise HTTPException(
-                status_code=500,
-                detail="할일 삭제에 실패하였습니다. 다시 시도해 주세요.",
-            )
-        return True
+    try:
+        with cnx.cursor() as cursor:
+            sql = "DELETE FROM todo WHERE usr_id = %s AND todo_id = %s"
+            cursor.execute(sql, (user_id, todo_id))
+            cnx.commit()
+            return cursor.rowcount > 0
+    except Exception as e:
+        print("DB 할일 삭제 에러:", e)
+        return False
 
 
 def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
