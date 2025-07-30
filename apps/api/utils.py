@@ -60,7 +60,7 @@ def create_access_token(
 
 def decode_jwt_token(token: str):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
-        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
+        raise HTTPException(status_code=500, detail="JWT 설정값이 존재하지 않습니다.")
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         return payload

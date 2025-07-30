@@ -111,7 +111,7 @@ def select_user_by_email_and_password(email: str, password: str, cnx: Any):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="비밀번호가 올바르지 않습니다. 다시 확인해 주세요.",
         )
-    return user_id, user_name, user_email
+    return user_id, user_email, user_name
 
 
 def add_todo_into_database(
