@@ -39,8 +39,8 @@ def get_current_user(
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="유효하지 않은 토큰입니다. 다시 로그인해 주세요.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="존재하지 않는 유저입니다.",
         )
     return schemas.PublicUser(id=user.id, email=user.email, name=user.name)
 
