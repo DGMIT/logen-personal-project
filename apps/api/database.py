@@ -33,9 +33,13 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     cnx: MySQLConnection = Depends(get_db_connection),
 ):
-    token = credentials.credentials
-    payload = decode_jwt_token(token)
-    _, user_email = extract_user_info_from_payload(payload)
+    try:
+        token = credentials.credentials
+        payload = decode_jwt_token(token)
+        user_info = extract_user_info_from_payload(payload)
+        user_email = user_info["email"]
+    except Exception:
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
     user = select_user_by_email(user_email, cnx)
     if not user:
         raise HTTPException(
