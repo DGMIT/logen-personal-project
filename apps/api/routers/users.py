@@ -69,26 +69,7 @@ def register(
         email = request.email
         password = request.password
         name = request.name
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일을 입력해주세요."
-            )
-        if not password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="비밀번호를 입력해주세요",
-            )
-        if not name:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="이름을 입력해주세요"
-            )
-        user_id = db.insert_user(email, password, name, cnx)
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="이미 존재하는 이메일입니다.",
-            )
-
+        user_id = user_service.register_service(email, password, name, cnx)
         return schemas.RegisterResponse(
             success=True,
             message="회원가입에 성공하셨습니다.",
