@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import database as db
 import schemas
@@ -7,8 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from mysql.connector.connection import MySQLConnection
 
 router = APIRouter(
-    prefix="/items",
-    dependencies=[Depends(db.get_connection)],
+    prefix="/todos",
     responses={
         401: {"description": "유효하지 않은 토큰입니다. 다시 로그인해 주세요."},
         500: {"description": "DB 연결 실패"},
@@ -17,7 +16,7 @@ router = APIRouter(
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.TodoCreateResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
@@ -45,7 +44,7 @@ def add_todo(
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.TodoListResponse,
     status_code=status.HTTP_200_OK,
 )
@@ -57,7 +56,9 @@ def get_todos(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todos = todo_service.get_todos(current_user.id, done, category, search, cnx)
+        todos = todo_service.get_todos_service(
+            current_user.id, done, category, search, cnx
+        )
         return schemas.TodoListResponse(
             success=True,
             message="할일 목록조회 성공",
@@ -90,7 +91,7 @@ def get_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        return todo_service.get_todo(todo_id, current_user, cnx)
+        return todo_service.get_todo_service(todo_id, current_user, cnx)
     except HTTPException:
         raise
     except Exception as err:
@@ -120,7 +121,7 @@ def modify_todo(
         return schemas.TodoUpdateResponse(
             success=True,
             message="수정 성공",
-            data=todo_service.modify_todo(todo_id, todo, current_user.id, cnx),
+            data=todo_service.modify_todo_service(todo_id, todo, current_user.id, cnx),
         )
     except HTTPException:
         raise
@@ -146,7 +147,7 @@ def delete_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todo_service.delete_todo(todo_id, current_user.id, cnx)
+        todo_service.delete_todo_service(todo_id, current_user.id, cnx)
         return schemas.DeleteResponse(
             success=True, message=f"{todo_id}번째 할일 삭제 성공"
         )
@@ -174,16 +175,10 @@ def toggle_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        updated_todo = db.toggle_todo_from_database(current_user.id, todo_id, cnx)
-        if not updated_todo:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="할일이 존재하지 않습니다.",
-            )
-        updated_todo["yn_done"] = bool(updated_todo["yn_done"])
+        updated_todo = todo_service.toggle_todo_service(todo_id, current_user.id, cnx)
         return schemas.ToggleResponse(
             success=True,
-            message=f"할일 상태가 {updated_todo['done']}로 변경되었습니다.",
+            message=f"할일 상태가 {updated_todo['yn_done']}로 변경되었습니다.",
         )
     except Exception as err:
         print("toggle_todo Unexpected error:", err)

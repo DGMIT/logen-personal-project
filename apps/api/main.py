@@ -3,9 +3,12 @@ import schemas
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBearer
 from mysql.connector.connection import MySQLConnection
+from routers.todos import router as todo_router
 from utils import create_access_token
 
 app = FastAPI()
+
+app.include_router(todo_router)
 
 
 security = HTTPBearer()

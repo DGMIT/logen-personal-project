@@ -28,7 +28,7 @@ def add_todo_service(
     )
 
 
-def get_todos(
+def get_todos_service(
     user_id: int,
     done: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
@@ -59,7 +59,7 @@ def get_todos(
     return todos
 
 
-def get_todo(
+def get_todo_service(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
     cnx: MySQLConnection = Depends(db.get_db_connection),
@@ -76,7 +76,7 @@ def get_todo(
     )
 
 
-def modify_todo(
+def modify_todo_service(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
     user_id: int,
@@ -130,7 +130,7 @@ def modify_todo(
     return modified_todo
 
 
-def delete_todo(
+def delete_todo_service(
     todo_id: int,
     user_id: int,
     cnx: MySQLConnection = Depends(db.get_db_connection),
@@ -141,3 +141,18 @@ def delete_todo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="할일이 존재하지 않습니다.",
         )
+
+
+def toggle_todo_service(
+    todo_id: int,
+    user_id: int,
+    cnx: MySQLConnection = Depends(db.get_db_connection),
+) -> None:
+    updated_todo = db.toggle_todo_from_database(user_id, todo_id, cnx)
+    if not updated_todo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="할일이 존재하지 않습니다.",
+        )
+    updated_todo["yn_done"] = bool(updated_todo["yn_done"])
+    return updated_todo
