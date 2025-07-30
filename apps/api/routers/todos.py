@@ -1,10 +1,10 @@
-import datetime
 from typing import Optional
 
 import database as db
 import schemas
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from mysql.connector.connection import MySQLConnection
+from services.todo_service import add_todo_service
 
 router = APIRouter(
     prefix="/items",
@@ -30,36 +30,9 @@ def add_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        if (
-            not todo.title
-            or not todo.description
-            or not todo.category
-            or not todo.duedate
-            or not todo.priority
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="할일 내용을 입력해주세요.",
-            )
-        todo_id = db.add_todo_into_database(todo, current_user.id, cnx)
-        if not todo_id:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="DB 에러입니다.",
-            )
+        add_todo = add_todo_service(todo, current_user.id, cnx)
         return schemas.TodoCreateResponse(
-            success=True,
-            message="할일 등록 성공",
-            data=schemas.Todo(
-                id=todo_id,
-                title=todo.title,
-                description=todo.description,
-                category=todo.category,
-                priority=todo.priority,
-                duedate=datetime.date.today(),
-                done=False,
-                created_at=datetime.datetime.now(),
-            ),
+            success=True, message="할일 등록 성공", data=add_todo
         )
     except HTTPException:
         raise
