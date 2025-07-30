@@ -42,7 +42,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="유효하지 않은 토큰입니다. 다시 로그인해 주세요.",
         )
-    return schemas.PublicUser(id=user[0], email=user[2], name=user[1])
+    return schemas.PublicUser(id=user.id, email=user.email, name=user.name)
 
 
 def get_connection(config: Any):
@@ -90,28 +90,33 @@ def select_user_by_email(email: str, cnx: Any):
     with cnx.cursor() as cursor:
         sql = "SELECT *  FROM usr WHERE email = %s"
         cursor.execute(sql, (email,))
-        result = cursor.fetchone()
-        if not result:
+        user = cursor.fetchone()
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="해당 사용자를 찾을 수 없습니다.",
             )
-        return result
+        return schemas.User(id=user[0], name=user[1], email=user[2])
 
 
 def select_user_by_email_and_password(email: str, password: str, cnx: Any):
-    user_id, user_name, user_email, user_password = select_user_by_email(email, cnx)
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="해당 사용자를 찾을 수 없습니다.",
+    with cnx.cursor() as cursor:
+        sql = "SELECT *  FROM usr WHERE email = %s"
+        cursor.execute(sql, (email,))
+        user = cursor.fetchone()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="해당 사용자를 찾을 수 없습니다.",
+            )
+        if not verify_password(password, user[3]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="비밀번호가 올바르지 않습니다. 다시 확인해 주세요.",
+            )
+        return schemas.UserInDB(
+            id=user[0], name=user[1], email=user[2], password=user[3]
         )
-    if not verify_password(password, user_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="비밀번호가 올바르지 않습니다. 다시 확인해 주세요.",
-        )
-    return user_id, user_email, user_name
 
 
 def add_todo_into_database(

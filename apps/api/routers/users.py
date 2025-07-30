@@ -29,17 +29,15 @@ def login(
     try:
         email = request.email
         password = request.password
-        user_id, user_email, user_name = user_service.login_service(
-            email, password, cnx
-        )
+        user = user_service.login_service(email, password, cnx)
         return schemas.LoginResponse(
             success=True,
             message="로그인에 성공하셨습니다.",
             data=schemas.LoginData(
                 token=create_access_token(
-                    data={"sub": str(user_id), "email": user_email}
+                    data={"sub": str(user.id), "email": user.email}
                 ),
-                user=schemas.PublicUser(id=user_id, email=user_email, name=user_name),
+                user=schemas.PublicUser(id=user.id, email=user.email, name=user.name),
             ),
         )
     except HTTPException:
