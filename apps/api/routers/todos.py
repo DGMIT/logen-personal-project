@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import database as db
 import schemas
+import services.todo_service as todo_service
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from mysql.connector.connection import MySQLConnection
-from services.todo_service import add_todo_service
 
 router = APIRouter(
     prefix="/items",
@@ -30,7 +30,7 @@ def add_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        add_todo = add_todo_service(todo, current_user.id, cnx)
+        add_todo = todo_service.add_todo_service(todo, current_user.id, cnx)
         return schemas.TodoCreateResponse(
             success=True, message="할일 등록 성공", data=add_todo
         )
@@ -57,27 +57,7 @@ def get_todos(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todos_raw = (
-            db.get_total_todos_from_datbase(
-                current_user.id, cnx, done=done, category=category, search=search
-            )
-            or []
-        )
-
-        todos = []
-        for todo in todos_raw:
-            todo_dict = {
-                "id": todo["todo_id"],
-                "title": todo["todo_title"],
-                "description": todo["todo_dtl"],
-                "category": todo["ctgy"],
-                "priority": todo["priority_lvl"],
-                "duedate": todo["due_dt"],
-                "done": bool(todo["yn_done"]),
-                "created_at": todo["created_dt"],
-                "user_id": todo["usr_id"],
-            }
-            todos.append(schemas.Todo(**todo_dict))
+        todos = todo_service.get_todos(done, category, search, current_user, cnx)
         return schemas.TodoListResponse(
             success=True,
             message="할일 목록조회 성공",
