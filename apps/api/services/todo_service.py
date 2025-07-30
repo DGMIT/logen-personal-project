@@ -74,3 +74,57 @@ def get_todo(
         message=f"{todo_id}번째 할일 조회 성공",
         data=todo,
     )
+
+
+def modify_todo(
+    todo_id: int,
+    todo: schemas.TodoUpdateRequest,
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
+):
+    existing_todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
+    if not existing_todo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="할일이 존재하지 않습니다.",
+        )
+    # 2. 필드별 공백/유효성 체크 (입력된 값만 검사)
+    if todo.title is not None and not todo.title.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="제목이 공백입니다.",
+        )
+    if todo.description is not None and not todo.description.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="설명이 공백입니다.",
+        )
+    if todo.category is not None and not str(todo.category).strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="카테고리가 공백입니다.",
+        )
+    if todo.priority is not None and not str(todo.priority).strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="우선순위가 공백입니다.",
+        )
+    if todo.duedate is not None and str(todo.duedate).strip() == "":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="마감일이 공백입니다.",
+        )
+    # done 필드가 있으면 타입만 체크 (boolean이 아니면 에러)
+    if todo.done is not None and not isinstance(todo.done, bool):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="done 값은 boolean이어야 합니다.",
+        )
+    # 3. DB 수정
+    modified_todo = db.put_todo_from_database(current_user.id, todo_id, todo, cnx)
+    if not modified_todo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="할일이 존재하지 않습니다.",
+        )
+    return modified_todo
