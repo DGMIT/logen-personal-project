@@ -157,17 +157,12 @@ def modify_todo(
                 detail="done 값은 boolean이어야 합니다.",
             )
         # 3. DB 수정
-        print("before", current_user)
-        print("before", todo_id)
-        print("befoere", todo)
         modified_todo = db.put_todo_from_database(current_user.id, todo_id, todo, cnx)
         if not modified_todo:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="할일이 존재하지 않습니다.",
             )
-        print("modified_todo", modified_todo)
-        print("modified_todo", type(modified_todo))
         return schemas.TodoUpdateResponse(
             success=True, message="수정 성공", data=modified_todo
         )
