@@ -57,7 +57,7 @@ def get_todos(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todos = todo_service.get_todos(done, category, search, current_user, cnx)
+        todos = todo_service.get_todos(current_user.id, done, category, search, cnx)
         return schemas.TodoListResponse(
             success=True,
             message="할일 목록조회 성공",
@@ -120,7 +120,7 @@ def modify_todo(
         return schemas.TodoUpdateResponse(
             success=True,
             message="수정 성공",
-            data=todo_service.modify_todo(todo_id, todo, current_user, cnx),
+            data=todo_service.modify_todo(todo_id, todo, current_user.id, cnx),
         )
     except HTTPException:
         raise

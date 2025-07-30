@@ -29,15 +29,15 @@ def add_todo_service(
 
 
 def get_todos(
+    user_id: int,
     done: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    current_user: schemas.PublicUser = Depends(db.get_current_user),
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     todos_raw: List[Dict[str, Any]] = (
         db.get_total_todos_from_datbase(
-            current_user.id, cnx, done=done, category=category, search=search
+            user_id, cnx, done=done, category=category, search=search
         )
         or []
     )
@@ -79,10 +79,10 @@ def get_todo(
 def modify_todo(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
-    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    user_id: int,
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
-    existing_todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
+    existing_todo = db.get_todo_from_database(user_id, todo_id, cnx)
     if not existing_todo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -121,7 +121,7 @@ def modify_todo(
             detail="done 값은 boolean이어야 합니다.",
         )
     # 3. DB 수정
-    modified_todo = db.put_todo_from_database(current_user.id, todo_id, todo, cnx)
+    modified_todo = db.put_todo_from_database(user_id, todo_id, todo, cnx)
     if not modified_todo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
