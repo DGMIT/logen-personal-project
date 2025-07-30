@@ -57,3 +57,20 @@ def get_todos(
         }
         todos.append(schemas.Todo(**todo_dict))
     return todos
+
+
+def get_todo(
+    todo_id: int,
+    current_user: schemas.PublicUser = Depends(db.get_current_user),
+    cnx: MySQLConnection = Depends(db.get_db_connection),
+):
+    todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
+    if not todo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="조회한 할일이 업습니다."
+        )
+    return schemas.TodoResponse(
+        success=True,
+        message=f"{todo_id}번째 할일 조회 성공",
+        data=todo,
+    )

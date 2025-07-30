@@ -90,16 +90,7 @@ def get_todo(
     cnx: MySQLConnection = Depends(db.get_db_connection),
 ):
     try:
-        todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
-        if not todo:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="조회한 할일이 업습니다."
-            )
-        return schemas.TodoResponse(
-            success=True,
-            message=f"{todo_id}번째 할일 조회 성공",
-            data=todo,
-        )
+        return todo_service.get_todo(todo_id, current_user, cnx)
     except HTTPException:
         raise
     except Exception as err:
