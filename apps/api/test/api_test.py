@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import database as db  # get_current_user, get_db_connection이 정의된 곳
@@ -26,6 +27,8 @@ def override_get_db_connection():
         "created_dt": "2025-07-01T00:00:00",
     }
 
+    mock_cursor.rowcount = 1  # put/delete 성공한 척
+
     mock_conn = MagicMock()
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
     return mock_conn
@@ -51,3 +54,31 @@ def test_get_todo():
     assert response.json()["success"] == True
     assert response.json()["message"] == f"{todo_id}번째 할일 조회 성공"
     assert type(schemas.Todo(**response.json()["data"])) == schemas.Todo
+
+
+def test_update_todo():
+    todo_id = 1
+    update_data: dict[str, Any] = {
+        "title": "수정된 제목",
+        "description": "수정된 내용",
+        "done": True,
+        "duedate": "2025-08-01T00:00:00",
+        "category": "업무",
+        "priority": "보통",
+    }
+
+    response = client.put(f"/todos/{todo_id}", json=update_data)
+    print(response.json())
+    assert response.status_code == 200
+    assert response.json()["success"] == True
+    assert response.json()["message"] == "수정 성공"
+
+
+def test_delete_todo():
+    todo_id = 1
+
+    response = client.delete(f"/todos/{todo_id}")
+    print(response.json())
+    assert response.status_code == 200
+    assert response.json()["success"] == True
+    assert response.json()["message"] == f"{todo_id}번째 할일 삭제 성공"
