@@ -23,3 +23,9 @@ def is_text_in_string_using_find_method(target_text: str, main_string: str) -> b
     if main_string.find(target_text) != -1:
         return True
     return False
+
+
+def is_min_length(s: str, min_len: int) -> bool:
+    if len(s.strip()) >= min_len:
+        return True
+    return False
