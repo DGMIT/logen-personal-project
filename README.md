@@ -1,7 +1,3 @@
-물론입니다! 아래는 현재 내용을 구조적으로 정리하고 표현을 매끄럽게 다듬은 버전입니다. 핵심은 **가독성 향상**, **중복 제거**, **표현 통일**입니다:
-
----
-
 ## 📋 프로젝트 개요
 
 ### 1. 프로젝트명
@@ -178,7 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_todo_usr_priority_lvl ON todo(usr_id, priority_lv
 
 #### 🐳 백엔드 실행
 
-1. `.env` 파일 생성 (`apps/api` 내부):
+1. `.env` 파일 생성 (`apps/api` 내부)
 
 ```
 JWT_SECRET_KEY=your_secret_key
@@ -186,7 +182,7 @@ JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-1.5 '.env' 파일 생성(`apps/infra' 내부):
+2. `.env` 파일 생성(`apps/infra` 내부)
 ```
 DB_HOST=127.0.0.1
 DB_USER=root
@@ -194,7 +190,7 @@ DB_PASSWORD=1234
 DB_NAME=todo_app
 ```
 
-2. MariaDB 초기화 및 실행:
+3. MariaDB 초기화 및 실행
 
 ```bash
 cd apps/infra
@@ -202,7 +198,7 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-3. 가상환경 및 라이브러리 설치:
+4. 가상환경 및 라이브러리 설치
 
 ```bash
 cd ../api
@@ -211,7 +207,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. FastAPI 서버 실행:
+5. FastAPI 서버 실행
 
 ```bash
 uvicorn main:app --reload
@@ -219,7 +215,7 @@ uvicorn main:app --reload
 
 #### 🖥️ 프론트엔드 실행
 
-1. 가상환경 및 라이브러리 설치:
+7. 가상환경 및 라이브러리 설치
 
 ```bash
 cd apps/desktop
@@ -228,7 +224,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. 실행:
+8. 실행
 
 ```bash
 python main.py
@@ -237,7 +233,7 @@ python main.py
 ---
 
 ### 프론트엔드 실행파일 생성 방법
-프론트엔드 루트 경로로 이동합니다.
+프론트엔드 루트 경로로 이동합니다.(/desktop)
 
 ```bash
 pyinstaller --noconfirm --noconsole --onefile main.py --name smarttaskmanager
