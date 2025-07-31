@@ -10,3 +10,9 @@ app.include_router(user_router)
 
 
 security = HTTPBearer()
+
+
+# test용 api
+@app.get("/")
+async def read_main():
+    return {"msg": "Hello World"}

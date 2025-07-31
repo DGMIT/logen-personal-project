@@ -1,6 +1,7 @@
 import pytest
-import sample_utils
 from fastapi import HTTPException
+
+from . import sample_utils
 
 
 def test_numbers_are_equal():
@@ -140,4 +141,5 @@ class TestCommonErrorCases:
     # 인증 없이 보호된 라우터에 접근할 때 HTTPException (401 또는 403)이 발생해야 한다.
     def test_raise_htttpexception_error(self):
         with pytest.raises(HTTPException):
+            sample_utils.raise_httpexception_error_function()
             sample_utils.raise_httpexception_error_function()
