@@ -28,3 +28,15 @@ class TestIsGreaterOrLesser:
             )
             != False
         )
+
+
+def test_target_text_in_string_using_in_method():
+    target_text = "Hi"
+    main_string = "Hi I'm geonwoo"
+    assert sample_utils.is_text_in_string_using_in_method(target_text, main_string)
+
+
+def test_target_text_in_string_using_find_method():
+    target_text = "Hi"
+    main_string = "Hi I'm geonwoo"
+    assert sample_utils.is_text_in_string_using_find_method(target_text, main_string)
