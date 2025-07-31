@@ -60,7 +60,7 @@ def create_access_token(
 
 def decode_jwt_token(token: str):
     if not JWT_SECRET_KEY or not JWT_ACCESS_TOKEN_EXPIRE_MINUTES or not JWT_ALGORITHM:
-        raise HTTPException(status_code=500, detail="JWT 설정이 올바르지 않습니다.")
+        raise HTTPException(status_code=500, detail="JWT 설정값이 존재하지 않습니다.")
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         return payload
@@ -70,7 +70,7 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
 
 
-def extract_user_info_from_payload(payload: dict[str, Any]) -> tuple[int, str]:
+def extract_user_info_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     user_id = payload.get("sub")
     user_email = payload.get("email")
     if user_id is None or user_email is None:
@@ -78,4 +78,4 @@ def extract_user_info_from_payload(payload: dict[str, Any]) -> tuple[int, str]:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="토큰에 필요한 정보가 없습니다.",
         )
-    return int(user_id), user_email
+    return {"id": user_id, "email": user_email}
