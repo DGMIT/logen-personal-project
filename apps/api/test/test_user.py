@@ -106,3 +106,32 @@ class TestRegisterService:
 def test_logout_api():
     reponse = client.post("/logout")
     assert reponse.status_code == 200
+
+
+def test_withdraw_api():
+
+    def fake_get_db_connection():
+        mocc_con = MagicMock()
+        return mocc_con
+
+    def fake_get_current_user():
+        return schemas.PublicUser(id=1, name="testuser", email="test@example.com")
+
+    def fake_delete_user(user_id, cnx):
+        return True
+
+    app.dependency_overrides[db.get_db_connection] = fake_get_db_connection
+    app.dependency_overrides[db.get_current_user] = fake_get_current_user
+
+    original_delete_user = db.delete_user
+    db.delete_user = fake_delete_user
+
+    try:
+        response = client.post("/withdraw")
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["success"] == True
+        assert response_data["message"] == "회원탈퇴 성공"
+    finally:
+        app.dependency_overrides.clear()
+        db.delete_user = original_delete_user
