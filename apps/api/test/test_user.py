@@ -5,6 +5,7 @@ import bcrypt
 import database as db  # get_current_user, get_db_connection이 정의된 곳
 import schemas
 import services.user_service as user_service
+from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from main import app
 
@@ -54,6 +55,49 @@ class TestLoginService:
 
         finally:
             # 6단계: 꼭!! 원래 함수들로 되돌리기 (다른 테스트에 영향 안 주려고)
-            db.select_user_by_email = origigianl_get_db_func
-            db.get_db_connection = origigianl_select_uesr_by_email
+            db.select_user_by_email = origigianl_select_uesr_by_email
+            db.get_db_connection = origigianl_get_db_func
             print("6단계: 원래 함수들로 복구 완료")
+
+
+class TestRegisterService:
+    def test_return_correct_user_id(self):
+        def fake_get_db_connection():
+            mock_conn = MagicMock()
+            return mock_conn
+
+        def fake_email_exist(email, cnx):
+            if email == "ceh2000002@naver.com":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="이미 존재하는 이메일입니다.",
+                )
+            return None
+
+        def fake_create_user(email, password, name, cnx):
+            return 2
+
+        original_get_db_connection = db.get_db_connection
+        original_email_exist = db.email_exist
+        original_create_user = db.create_user
+
+        db.get_db_connection = fake_get_db_connection
+        db.email_exist = fake_email_exist
+        db.create_user = fake_create_user
+
+        test_email = "ceh2000002@naver.com"
+        test_email_new = "ceh20002@naver.com"
+        password = "1234"
+        name = "logen"
+        try:
+            mock_cnx = db.get_db_connection()
+            response = user_service.register_service(
+                test_email_new, password, name, mock_cnx
+            )
+            assert response is not None
+        except HTTPException as e:
+            raise
+        finally:
+            db.get_db_connection = original_get_db_connection
+            db.email_exist = original_email_exist
+            db.create_user = original_create_user
