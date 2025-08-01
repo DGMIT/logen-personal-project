@@ -101,3 +101,8 @@ class TestRegisterService:
             db.get_db_connection = original_get_db_connection
             db.email_exist = original_email_exist
             db.create_user = original_create_user
+
+
+def test_logout_api():
+    reponse = client.post("/logout")
+    assert reponse.status_code == 200
