@@ -24,7 +24,7 @@ class TestIsGreaterOrLesser:
             == True
         )
 
-    def test_base_number_is_not_greater_than_all(self):
+    def test_base_numbr_is_not_greater_than_all(self):
         assert (
             sample_utils.is_number_less_than_other(
                 self.target_number, self.dummy_int_list
