@@ -83,17 +83,22 @@ def create_user(
         return None
 
 
-def delete_user(user_id: int, cnx: Any):
-    with cnx.cursor() as cursor:
-        cursor.execute("DELETE FROM usr WHERE usr_id = %s", (user_id,))
-        affected = cursor.rowcount
-        cnx.commit()
-        if affected == 0:
+def delete_user(user_id: int, session: Session):
+    try:
+        stmt = select(models.User).where(models.User.usr_id == user_id)
+        target_user = session.scalars(stmt).one_or_none()
+        if target_user is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="탈퇴할 사용자를 찾을 수 없습니다.",
             )
+        session.delete(target_user)
+        session.commit()
         return True
+    except Exception as e:
+        session.rollback()
+        print("DB 유저 삭제 에러", e)
+        return None
 
 
 def select_user_by_email(email: str, session: Any):
@@ -257,6 +262,19 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row

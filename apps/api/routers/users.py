@@ -104,10 +104,10 @@ def logout():
 )
 def withdraw(
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db),
+    session: Session = Depends(db.get_db),
 ):
     try:
-        db.delete_user(current_user.id, cnx)
+        db.delete_user(current_user.id, session)
         return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
     except HTTPException:
         raise
