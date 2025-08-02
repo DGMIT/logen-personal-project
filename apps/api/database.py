@@ -112,27 +112,27 @@ def select_user_by_email(email: str, session: Any):
 def add_todo_into_database(
     todo: schemas.TodoCreateRequest,
     user_id: int,
-    cnx: MySQLConnection,
+    session: Session,
 ):
-    with cnx.cursor(dictionary=True) as cursor:
-        sql = """
-            INSERT INTO todo (todo_title, todo_dtl, ctgy, priority_lvl, due_dt, usr_id)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(
-            sql,
-            (
-                todo.title,
-                todo.description,
-                todo.category,
-                todo.priority,
-                todo.duedate,
-                user_id,
-            ),
+    new_todo = models.Todo(
+        todo_title=todo.title,
+        todo_dtl=todo.description,
+        ctgy=todo.category,
+        priority_lvl=todo.priority,
+        due_dt=todo.duedate,
+        usr_id=user_id,
+    )
+    try:
+        session.add(new_todo)
+        session.commit()
+        return new_todo.todo_id
+    except Exception as e:
+        session.rollback()
+        print("할일 추가 에러:", e)
+        raise HTTPException(
+            status_code=500,
+            detail="할일을 추가하는 중 데이터베이스 오류가 발생했습니다.",
         )
-        inserted_id = cursor.lastrowid
-    cnx.commit()
-    return inserted_id
 
 
 def get_total_todos_from_datbase(
@@ -262,6 +262,29 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row

@@ -5,12 +5,13 @@ import database as db
 import schemas
 from fastapi import Depends, HTTPException, Query, status
 from mysql.connector import MySQLConnection
+from sqlalchemy.orm import Session
 
 
 def add_todo_service(
-    todo: schemas.TodoCreateRequest, user_id: int, cnx: MySQLConnection
+    todo: schemas.TodoCreateRequest, user_id: int, session: Session
 ) -> schemas.Todo:
-    todo_id = db.add_todo_into_database(todo, user_id, cnx)
+    todo_id = db.add_todo_into_database(todo, user_id, session)
     if not todo_id:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
