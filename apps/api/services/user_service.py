@@ -1,7 +1,6 @@
 import database as db
 import schemas
 from fastapi import Depends, HTTPException, status
-from mysql.connector.connection import MySQLConnection
 from sqlalchemy.orm import Session
 from utils import verify_password
 
