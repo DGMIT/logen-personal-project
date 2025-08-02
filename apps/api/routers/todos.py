@@ -26,7 +26,7 @@ router = APIRouter(
 def add_todo(
     todo: schemas.TodoCreateRequest,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         add_todo = todo_service.add_todo_service(todo, current_user.id, cnx)
@@ -53,7 +53,7 @@ def get_todos(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         todos = todo_service.get_todos_service(
@@ -88,7 +88,7 @@ def get_todos(
 def get_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         return todo_service.get_todo_service(todo_id, current_user, cnx)
@@ -115,7 +115,7 @@ def modify_todo(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         return schemas.TodoUpdateResponse(
@@ -144,7 +144,7 @@ def modify_todo(
 def delete_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         todo_service.delete_todo_service(todo_id, current_user.id, cnx)
@@ -172,7 +172,7 @@ def delete_todo(
 def toggle_todo(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         updated_todo = todo_service.toggle_todo_service(todo_id, current_user.id, cnx)

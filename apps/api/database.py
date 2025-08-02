@@ -1,32 +1,34 @@
 from typing import Any, Generator, Optional, cast
 
+import models
 import mysql.connector
 import schemas
-from config import config
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mysql.connector import MySQLConnection, errorcode
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
 from utils import decode_jwt_token, extract_user_info_from_payload, get_password_hash
 
 security = HTTPBearer()
 
+engine = create_engine(
+    "mysql+mysqlconnector://root:1234@127.0.0.1:3306/todo_app", pool_pre_ping=True
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db_connection() -> Generator[MySQLConnection]:
-    cnx = get_connection(config)
-    if not cnx or not cnx.is_connected():
-        raise HTTPException(
-            status_code=500, detail="데이터베이스 연결에 실패하였습니다."
-        )
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
     try:
-        yield cnx  # type: ignore
+        yield db
     finally:
-        if cnx and cnx.is_connected():
-            cnx.close()
+        db.close()
 
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    cnx: MySQLConnection = Depends(get_db_connection),
+    cnx: Session = Depends(get_db),
 ):
     try:
         token = credentials.credentials
@@ -91,15 +93,11 @@ def delete_user(user_id: int, cnx: Any):
 
 
 def select_user_by_email(email: str, cnx: Any):
-    with cnx.cursor() as cursor:
-        sql = "SELECT *  FROM usr WHERE email = %s"
-        cursor.execute(sql, (email,))
-        row = cursor.fetchone()
-        if row:
-            return schemas.UserInDB(
-                id=row[0], name=row[1], email=row[2], password=row[3]
-            )
-        return None
+    stmt = select(models.User).where(models.User.email == email)
+    user = cnx.scalars(stmt).one()
+    return schemas.UserInDB(
+        id=user.usr_id, name=user.usr_nm, email=user.email, password=user.pwd
+    )
 
 
 def add_todo_into_database(
@@ -255,4 +253,7 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row

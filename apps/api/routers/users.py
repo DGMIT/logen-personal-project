@@ -23,9 +23,7 @@ router = APIRouter(
         404: {"model": schemas.ErrorResponse, "description": "존재하지 않는 이메일"},
     },
 )
-def login(
-    request: schemas.LoginRequest, cnx: MySQLConnection = Depends(db.get_db_connection)
-):
+def login(request: schemas.LoginRequest, cnx: MySQLConnection = Depends(db.get_db)):
     try:
         email = request.email
         password = request.password
@@ -61,7 +59,7 @@ def login(
 )
 def register(
     request: schemas.RegisterRequest,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         email = request.email
@@ -105,7 +103,7 @@ def logout():
 )
 def withdraw(
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     try:
         db.delete_user(current_user.id, cnx)

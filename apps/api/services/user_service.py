@@ -5,9 +5,7 @@ from mysql.connector.connection import MySQLConnection
 from utils import verify_password
 
 
-def login_service(
-    email: str, password: str, cnx: MySQLConnection = Depends(db.get_db_connection)
-):
+def login_service(email: str, password: str, cnx: MySQLConnection = Depends(db.get_db)):
     user = db.select_user_by_email(email, cnx)
     if not user:
         raise HTTPException(
@@ -26,7 +24,7 @@ def register_service(
     email: str,
     password: str,
     name: str,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     if not (email and password and name):
         raise HTTPException(

@@ -33,7 +33,7 @@ def get_todos_service(
     done: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     todos_raw: List[Dict[str, Any]] = (
         db.get_total_todos_from_datbase(
@@ -62,7 +62,7 @@ def get_todos_service(
 def get_todo_service(
     todo_id: int,
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     todo = db.get_todo_from_database(current_user.id, todo_id, cnx)
     if not todo:
@@ -80,7 +80,7 @@ def modify_todo_service(
     todo_id: int,
     todo: schemas.TodoUpdateRequest,
     user_id: int,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     existing_todo = db.get_todo_from_database(user_id, todo_id, cnx)
     if not existing_todo:
@@ -133,7 +133,7 @@ def modify_todo_service(
 def delete_todo_service(
     todo_id: int,
     user_id: int,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ):
     result = db.delete_todo_from_database(user_id, todo_id, cnx)
     if not result:
@@ -146,7 +146,7 @@ def delete_todo_service(
 def toggle_todo_service(
     todo_id: int,
     user_id: int,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    cnx: MySQLConnection = Depends(db.get_db),
 ) -> None:
     updated_todo = db.toggle_todo_from_database(user_id, todo_id, cnx)
     if not updated_todo:
