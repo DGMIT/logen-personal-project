@@ -137,27 +137,25 @@ def add_todo_into_database(
 
 def get_total_todos_from_datbase(
     user_id: int,
-    cnx: Any,
+    session: Session,
     done: Optional[bool] = None,
     category: Optional[str] = None,
     search: Optional[str] = None,
 ):
-    with cnx.cursor(dictionary=True) as cursor:
-        sql = "SELECT * FROM todo WHERE usr_id = %s"
-        params = [user_id]
-        if done is not None:
-            sql += " AND yn_done = %s"
-            params.append(1 if done else 0)
-        if category is not None:
-            sql += " AND ctgy = %s"
-            params.append(category)
-        if search is not None and search.strip() != "":
-            sql += " AND todo_title LIKE %s"
-            params.append(f"%{search}%")
-        cursor.execute(sql, tuple(params))
-        rows = cursor.fetchall()
-        if rows:
-            return rows
+    stmt = select(models.Todo).where(models.Todo.usr_id == user_id)
+
+    if done is not None:
+        stmt = stmt.where(models.Todo.yn_done == done)
+
+    if category is not None:
+        stmt = stmt.where(models.Todo.ctgy == category)
+
+    if search is not None and search.strip() != "":
+        stmt = stmt.where(models.Todo.todo_title.like(f"%{search}%"))
+
+    result = session.execute(stmt)
+    todos = result.scalars().all()
+    return todos
 
 
 def get_todo_from_database(
@@ -262,6 +260,19 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row
