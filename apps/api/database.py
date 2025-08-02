@@ -60,23 +60,27 @@ def get_connection(config: Any):
         return None
 
 
-def email_exist(email: str, cnx: Any) -> bool:
-    with cnx.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM usr WHERE email = %s", (email,))
-        return cursor.fetchone()[0] > 0
+def email_exist(email: str, session: Any) -> bool:
+    stmt = select(models.User).where(models.User.email == email)
+    user = session.scalars(stmt)
+    if user:
+        return False
+    return True
 
 
-def create_user(email: str, password: str, name: str, cnx: Any) -> Optional[int]:
-    with cnx.cursor() as cursor:
-        hashed_password = get_password_hash(password)
-        sql = "INSERT INTO usr (email, pwd, usr_nm) VALUES (%s, %s, %s)"
-        try:
-            cursor.execute(sql, (email, hashed_password, name))
-            cnx.commit()
-            return cursor.lastrowid
-        except Exception as e:
-            print("DB 유저 삽입 에러", e)
-            return None
+def create_user(
+    email: str, password: str, name: str, session: Session
+) -> Optional[int]:
+    hashed_password = get_password_hash(password)
+    new_user = models.User(usr_nm=name, pwd=hashed_password, email=email)
+    try:
+        session.add(new_user)
+        session.commit()
+        return new_user.usr_id
+    except Exception as e:
+        session.rollback()
+        print("DB 유저 삽입 에러", e)
+        return None
 
 
 def delete_user(user_id: int, cnx: Any):
@@ -92,9 +96,9 @@ def delete_user(user_id: int, cnx: Any):
         return True
 
 
-def select_user_by_email(email: str, cnx: Any):
+def select_user_by_email(email: str, session: Any):
     stmt = select(models.User).where(models.User.email == email)
-    user = cnx.scalars(stmt).one()
+    user = session.scalars(stmt).one()
     return schemas.UserInDB(
         id=user.usr_id, name=user.usr_nm, email=user.email, password=user.pwd
     )
@@ -253,6 +257,26 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row

@@ -2,11 +2,12 @@ import database as db
 import schemas
 from fastapi import Depends, HTTPException, status
 from mysql.connector.connection import MySQLConnection
+from sqlalchemy.orm import Session
 from utils import verify_password
 
 
-def login_service(email: str, password: str, cnx: MySQLConnection = Depends(db.get_db)):
-    user = db.select_user_by_email(email, cnx)
+def login_service(email: str, password: str, session: Session = Depends(db.get_db)):
+    user = db.select_user_by_email(email, session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -24,7 +25,7 @@ def register_service(
     email: str,
     password: str,
     name: str,
-    cnx: MySQLConnection = Depends(db.get_db),
+    session: Session = Depends(db.get_db),
 ):
     if not (email and password and name):
         raise HTTPException(
@@ -32,12 +33,12 @@ def register_service(
             detail="이메일, 비밀번호, 이름을 모두 입력해주세요.",
         )
 
-    if db.email_exist(email, cnx):
+    if db.email_exist(email, session):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="이미 존재하는 이메일입니다.",
         )
-    user_id = db.create_user(email, password, name, cnx)
+    user_id = db.create_user(email, password, name, session)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
