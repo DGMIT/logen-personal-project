@@ -159,24 +159,31 @@ def get_total_todos_from_datbase(
 
 
 def get_todo_from_database(
-    user_id: int, todo_id: int, cnx: MySQLConnection
+    user_id: int, todo_id: int, session: Session
 ) -> schemas.Todo | None:
-    with cnx.cursor(dictionary=True) as cursor:
-        sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
-        cursor.execute(sql, (user_id, todo_id))
-        raw_row = cursor.fetchone()
-        if raw_row is None:
-            return None
-        row = cast(dict[str, Any], raw_row)
-        return schemas.Todo(
-            id=row["todo_id"],
-            title=row["todo_title"],
-            description=row["todo_dtl"],
-            done=bool(row["yn_done"]),
-            category=row["ctgy"],
-            priority=row["priority_lvl"],
-            duedate=row["due_dt"],
-            created_at=row["created_dt"],
+
+    stmt = select(models.Todo).where(
+        models.Todo.todo_id == todo_id, models.Todo.usr_id == user_id
+    )
+    try:
+        todo = session.scalar(stmt)
+        if todo is not None:
+            return schemas.Todo(
+                id=todo.todo_id,
+                user_id=todo.usr_id,
+                title=todo.todo_title,
+                description=todo.todo_dtl,
+                category=todo.ctgy,
+                priority=todo.priority_lvl,
+                duedate=todo.due_dt,
+                done=todo.yn_done,
+                created_at=todo.created_dt,
+            )
+        return None
+    except Exception as e:
+        print("할일 개별조회 도중 데이터베이스 오류입니다.")
+        raise HTTPException(
+            status_code=500, detail="개별 할일 조회 도중 DB 에러입니다."
         )
 
 
@@ -260,6 +267,47 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row

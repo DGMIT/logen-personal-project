@@ -54,11 +54,11 @@ def get_todos(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db),
+    session: Session = Depends(db.get_db),
 ):
     try:
         todos = todo_service.get_todos_service(
-            current_user.id, done, category, search, cnx
+            current_user.id, done, category, search, session
         )
         return schemas.TodoListResponse(
             success=True,
