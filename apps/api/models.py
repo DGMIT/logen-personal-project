@@ -64,7 +64,7 @@ class Todo(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<Todo(id={self.todo_id}, title={self.todo_title}, "
-            f"done={self.yn_done}, category={self.ctgy}, priority={self.priority_lvl}, "
-            f"due_date={self.due_dt}, user_id={self.usr_id})>"
+            f"<Todo(todo_id={self.todo_id}, todo_title={self.todo_title}, "
+            f"yn_done={self.yn_done}, ctgy={self.ctgy}, priority_lvl={self.priority_lvl}, "
+            f"due_dt={self.due_dt}, usr_id={self.usr_id})>"
         )

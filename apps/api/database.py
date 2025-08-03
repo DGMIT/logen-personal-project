@@ -188,10 +188,9 @@ def get_todo_from_database(
 
 
 def put_todo_from_database(
-    user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, cnx: MySQLConnection
+    user_id: int, todo_id: int, todo: schemas.TodoUpdateRequest, session: Session
 ) -> schemas.Todo | None:
     update_todo = todo.model_dump(exclude_unset=True)
-
     key_mapping = {
         "title": "todo_title",
         "description": "todo_dtl",
@@ -212,32 +211,22 @@ def put_todo_from_database(
 
     if not update_todo_db:
         return None
-
-    with cnx.cursor(dictionary=True) as cursor:
-        set_clause = ", ".join(f"{col} = %s" for col in update_todo_db.keys())
-        sql = f"UPDATE todo SET {set_clause} WHERE usr_id = %s AND todo_id = %s"
-        values = list(update_todo_db.values()) + [user_id, todo_id]
-        cursor.execute(sql, values)
-        cnx.commit()
-
-        cursor.execute(
-            "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s",
-            (user_id, todo_id),
-        )
-        raw_row = cursor.fetchone()
-        if raw_row is None:
-            return None
-        row = cast(dict[str, Any], raw_row)
-        return schemas.Todo(
-            id=row["todo_id"],
-            title=row["todo_title"],
-            description=row["todo_dtl"],
-            done=bool(row["yn_done"]),
-            category=row["ctgy"],
-            priority=row["priority_lvl"],
-            duedate=row["due_dt"],
-            created_at=row["created_dt"],
-        )
+    session.query(models.Todo).where(
+        models.Todo.usr_id == user_id, models.Todo.todo_id
+    ).update(update_todo_db)
+    session.commit()
+    stmt = select(models.Todo).where(models.Todo.usr_id == user_id, models.Todo.todo_id)
+    updated_todo = session.scalar(stmt)
+    return schemas.Todo(
+        id=updated_todo.todo_id,
+        title=updated_todo.todo_title,
+        description=updated_todo.todo_dtl,
+        done=bool(updated_todo.yn_done),
+        category=updated_todo.ctgy,
+        priority=updated_todo.priority_lvl,
+        duedate=updated_todo.due_dt,
+        created_at=updated_todo.created_dt,
+    )
 
 
 def delete_todo_from_database(user_id: int, todo_id: int, cnx: Any):
@@ -267,6 +256,31 @@ def toggle_todo_from_database(user_id: int, todo_id: int, cnx: Any):
         sql = "SELECT * FROM todo WHERE usr_id = %s AND todo_id = %s"
         cursor.execute(sql, (user_id, todo_id))
         updated_row = cursor.fetchone()
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
+        return updated_row
         return updated_row
         return updated_row
         return updated_row
