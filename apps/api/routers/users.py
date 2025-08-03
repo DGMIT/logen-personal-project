@@ -3,6 +3,7 @@ import schemas
 import services.user_service as user_service
 from fastapi import APIRouter, Depends, HTTPException, status
 from mysql.connector.connection import MySQLConnection
+from sqlalchemy.orm import Session
 from utils import create_access_token
 
 router = APIRouter(
@@ -23,13 +24,11 @@ router = APIRouter(
         404: {"model": schemas.ErrorResponse, "description": "존재하지 않는 이메일"},
     },
 )
-def login(
-    request: schemas.LoginRequest, cnx: MySQLConnection = Depends(db.get_db_connection)
-):
+def login(request: schemas.LoginRequest, session: Session = Depends(db.get_db)):
     try:
         email = request.email
         password = request.password
-        user = user_service.login_service(email, password, cnx)
+        user = user_service.login_service(email, password, session)
         return schemas.LoginResponse(
             success=True,
             message="로그인에 성공하셨습니다.",
@@ -61,13 +60,13 @@ def login(
 )
 def register(
     request: schemas.RegisterRequest,
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    session: Session = Depends(db.get_db),
 ):
     try:
         email = request.email
         password = request.password
         name = request.name
-        user_id = user_service.register_service(email, password, name, cnx)
+        user_id = user_service.register_service(email, password, name, session)
         return schemas.RegisterResponse(
             success=True,
             message="회원가입에 성공하셨습니다.",
@@ -105,10 +104,10 @@ def logout():
 )
 def withdraw(
     current_user: schemas.PublicUser = Depends(db.get_current_user),
-    cnx: MySQLConnection = Depends(db.get_db_connection),
+    session: Session = Depends(db.get_db),
 ):
     try:
-        db.delete_user(current_user.id, cnx)
+        db.delete_user(current_user.id, session)
         return schemas.WithdrawResponse(success=True, message="회원탈퇴 성공")
     except HTTPException:
         raise
